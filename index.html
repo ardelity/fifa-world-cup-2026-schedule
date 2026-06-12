@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIFA World Cup 2026 — All Matches</title>
+<style>
+  :root {
+    --bg: #0e1420;
+    --card: #182234;
+    --card-played: #131b2a;
+    --text: #e8edf5;
+    --muted: #8b97ab;
+    --accent: #4cc38a;
+    --line: #243149;
+    --hl-border: #4f8fbf;
+    --hl-bg: #15304a;
+    --hl-bg2: #1a3a5a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    line-height: 1.4;
+  }
+  header {
+    padding: 28px 16px 12px;
+    text-align: center;
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  header p { margin: 0; color: var(--muted); font-size: .9rem; }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 8px 12px 48px;
+  }
+
+  /* Groups + Venues views */
+  #groups, #venues {
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+  #groups[hidden], #venues[hidden] { display: none; }
+  .venue-city {
+    color: var(--muted);
+    font-size: .75rem;
+    margin: -4px 0 6px;
+  }
+  .group-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .group-card h3 {
+    margin: 0 0 6px;
+    font-size: .9rem;
+    color: var(--accent);
+  }
+  .group-card table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: .78rem;
+  }
+  .group-card th {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: .68rem;
+    text-align: right;
+    padding: 1px 3px;
+  }
+  .group-card td {
+    padding: 2px 3px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .group-card .t {
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .group-card td.pts { font-weight: 700; }
+  .group-card tbody tr:nth-child(2) td { border-bottom: 1px dashed var(--line); }
+  .group-card { margin-bottom: 0; }
+  .gm-list { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+  .gm {
+    display: grid;
+    grid-template-columns: 110px 1fr auto 42px;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: .8rem;
+  }
+  .gm-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .gm-teams { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gm-res { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .gm-res.vs { color: var(--muted); font-weight: 400; }
+  .gm-bc { text-align: right; }
+  .gm-bc .bc-logo { margin-right: 0; margin-left: 3px; height: 13px; }
+  .gm-loc {
+    grid-column: 1 / -1;
+    color: var(--muted);
+    font-size: .68rem;
+    margin-top: -2px;
+    padding-bottom: 2px;
+  }
+  @media (max-width: 480px) {
+    .gm { grid-template-columns: 86px 1fr auto 40px; font-size: .72rem; }
+  }
+
+  /* Layout: vertical teams filter to the left of the views */
+  .layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 0 12px;
+  }
+  .content { flex: 1; min-width: 0; }
+  main { padding-left: 0; padding-right: 0; }
+
+  /* Team selection / highlighting */
+  #teams-bar {
+    width: 200px;
+    flex-shrink: 0;
+    padding: 8px 0 48px;
+  }
+  #teams-bar .team-chip {
+    display: block;
+    margin: 4px 0;
+  }
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    #teams-bar { width: 100%; padding-bottom: 0; }
+    #teams-bar .team-chip { display: inline-block; margin: 3px; }
+  }
+  .team-chip {
+    display: inline-block;
+    padding: 3px 11px;
+    margin: 3px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #0b101a;
+    font-size: .78rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .team-chip:hover { border-color: var(--accent); }
+  .filter-toggle { color: var(--muted); margin-bottom: 8px; }
+  .filter-toggle.on { border-color: var(--accent); color: var(--accent); background: #16271f; }
+  .venue-chip.sel { border-color: var(--accent); color: var(--accent); background: #16271f; }
+  .team-chip.sel { background: var(--hl-bg2); font-weight: 600; } /* border + text color set per team */
+  .team.sel { font-weight: 700; }
+  .match.sel, .match.sel.played { border-color: var(--hl-border); background: var(--hl-bg); }
+  .cal-match.sel { background: var(--hl-bg2); }
+  .group-card tr.sel td { background: var(--hl-bg); }
+  .gm.sel { background: var(--hl-bg); border-radius: 5px; }
+  .gm.sel .gm-teams { font-weight: 600; }
+  .day {
+    margin: 28px 4px 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 1;
+  }
+  .match {
+    display: grid;
+    grid-template-columns: 64px 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 8px 0;
+  }
+  .match.played { background: var(--card-played); }
+  .time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: .95rem;
+  }
+  .time small { display: block; font-weight: 400; color: var(--muted); font-size: .7rem; }
+  .team { font-size: 1rem; }
+  .team.home { text-align: right; }
+  .team.away { text-align: left; }
+  .team.placeholder { color: var(--muted); font-style: italic; font-size: .9rem; }
+  .score {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    padding: 2px 10px;
+    border-radius: 6px;
+    background: #0b101a;
+  }
+  .score.vs { color: var(--muted); font-weight: 400; background: none; }
+  .meta {
+    grid-column: 1 / -1;
+    color: var(--muted);
+    font-size: .78rem;
+    margin-top: 2px;
+  }
+  .stage-tag {
+    color: var(--accent);
+  }
+  .bc-logo {
+    height: 15px;
+    vertical-align: -3px;
+    margin-right: 3px;
+  }
+  .cal-match .bc-logo { height: 10px; vertical-align: -1px; float: right; margin: 1px 0 0 3px; }
+  @media (max-width: 560px) {
+    .match { grid-template-columns: 52px 1fr auto 1fr; padding: 8px 10px; gap: 6px; }
+    .team { font-size: .88rem; }
+  }
+
+  /* View + timezone toggles */
+  nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  nav button {
+    background: var(--card);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 18px;
+    font: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+  }
+  nav button.active {
+    color: var(--text);
+    border-color: var(--accent);
+    background: #16271f;
+  }
+  nav .sep {
+    width: 1px;
+    height: 22px;
+    background: var(--line);
+    margin: 0 4px;
+  }
+  nav button.tz { color: var(--text); }
+
+  /* Calendar view */
+  #calendar { max-width: 1100px; }
+  .month-title {
+    margin: 32px 4px 10px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-weekday {
+    text-align: center;
+    color: var(--muted);
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 4px 0;
+  }
+  .cal-cell {
+    background: var(--card-played);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    min-height: 86px;
+    padding: 6px;
+    font-size: .72rem;
+  }
+  .cal-cell.empty { background: none; border-color: transparent; }
+  .cal-cell.has-matches { background: var(--card); }
+  .cal-daynum {
+    font-weight: 600;
+    font-size: .8rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .cal-cell.has-matches .cal-daynum { color: var(--text); }
+  .cal-match {
+    background: #0b101a;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 3px 5px;
+    margin-bottom: 3px;
+    line-height: 1.3;
+  }
+  .cal-match.bc-tv4 { border-color: #e0001c; }
+  .cal-match.bc-svt { border-color: #3fa34d; }
+  .cal-match .cm-time { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cal-match .cm-score { font-weight: 700; }
+  .cal-match .cm-teams { display: block; }
+  .cal-match .cm-teams.placeholder { color: var(--muted); font-style: italic; }
+  @media (max-width: 700px) {
+    .cal-grid { gap: 2px; }
+    .cal-cell { min-height: 60px; padding: 3px; font-size: .62rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>FIFA World Cup 2026</h1>
+  <p id="subtitle">All 104 matches, sorted by kick-off time.</p>
+  <nav>
+    <button id="btn-list">List</button>
+    <button id="btn-calendar">Calendar</button>
+    <button id="btn-groups" class="active">Groups</button>
+    <button id="btn-venues">Venues</button>
+    <div class="sep"></div>
+    <button id="btn-tz" class="tz">Show Stockholm time</button>
+  </nav>
+</header>
+<div class="layout">
+  <aside id="teams-bar"></aside>
+  <div class="content">
+    <main id="list" hidden></main>
+    <main id="calendar" hidden></main>
+    <main id="groups"></main>
+    <main id="venues" hidden></main>
+  </div>
+</div>
+<script>
+const MATCHES = [
+  {
+    "matchNumber": 1,
+    "dateUtc": "2026-06-11T19:00:00Z",
+    "homeTeam": "Mexico",
+    "awayTeam": "South Africa",
+    "group": "Group A",
+    "location": "Mexico City Stadium",
+    "homeScore": 2,
+    "awayScore": 0,
+    "broadcaster": "TV4",
+    "stadium": "Estadio Azteca",
+    "city": "Mexico City",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 2,
+    "dateUtc": "2026-06-12T02:00:00Z",
+    "homeTeam": "Korea Republic",
+    "awayTeam": "Czechia",
+    "group": "Group A",
+    "location": "Guadalajara Stadium",
+    "homeScore": 2,
+    "awayScore": 1,
+    "broadcaster": "TV4",
+    "stadium": "Estadio Akron",
+    "city": "Guadalajara",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 3,
+    "dateUtc": "2026-06-12T19:00:00Z",
+    "homeTeam": "Canada",
+    "awayTeam": "Bosnia and Herzegovina",
+    "group": "Group B",
+    "location": "Toronto Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "BMO Field",
+    "city": "Toronto",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 4,
+    "dateUtc": "2026-06-13T01:00:00Z",
+    "homeTeam": "USA",
+    "awayTeam": "Paraguay",
+    "group": "Group D",
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 8,
+    "dateUtc": "2026-06-13T19:00:00Z",
+    "homeTeam": "Qatar",
+    "awayTeam": "Switzerland",
+    "group": "Group B",
+    "location": "San Francisco Bay Area Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Levi's Stadium",
+    "city": "San Francisco Bay Area (Santa Clara)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 7,
+    "dateUtc": "2026-06-13T22:00:00Z",
+    "homeTeam": "Brazil",
+    "awayTeam": "Morocco",
+    "group": "Group C",
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 5,
+    "dateUtc": "2026-06-14T01:00:00Z",
+    "homeTeam": "Haiti",
+    "awayTeam": "Scotland",
+    "group": "Group C",
+    "location": "Boston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Gillette Stadium",
+    "city": "Boston (Foxborough)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 6,
+    "dateUtc": "2026-06-14T04:00:00Z",
+    "homeTeam": "Australia",
+    "awayTeam": "Türkiye",
+    "group": "Group D",
+    "location": "BC Place Vancouver",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BC Place",
+    "city": "Vancouver",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 10,
+    "dateUtc": "2026-06-14T17:00:00Z",
+    "homeTeam": "Germany",
+    "awayTeam": "Curaçao",
+    "group": "Group E",
+    "location": "Houston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "NRG Stadium",
+    "city": "Houston",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 11,
+    "dateUtc": "2026-06-14T20:00:00Z",
+    "homeTeam": "Netherlands",
+    "awayTeam": "Japan",
+    "group": "Group F",
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 9,
+    "dateUtc": "2026-06-14T23:00:00Z",
+    "homeTeam": "Côte d'Ivoire",
+    "awayTeam": "Ecuador",
+    "group": "Group E",
+    "location": "Philadelphia Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Lincoln Financial Field",
+    "city": "Philadelphia",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 12,
+    "dateUtc": "2026-06-15T02:00:00Z",
+    "homeTeam": "Sweden",
+    "awayTeam": "Tunisia",
+    "group": "Group F",
+    "location": "Monterrey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Estadio BBVA",
+    "city": "Monterrey",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 14,
+    "dateUtc": "2026-06-15T16:00:00Z",
+    "homeTeam": "Spain",
+    "awayTeam": "Cabo Verde",
+    "group": "Group H",
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 16,
+    "dateUtc": "2026-06-15T19:00:00Z",
+    "homeTeam": "Belgium",
+    "awayTeam": "Egypt",
+    "group": "Group G",
+    "location": "Seattle Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1/SVT2",
+    "stadium": "Lumen Field",
+    "city": "Seattle",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 13,
+    "dateUtc": "2026-06-15T22:00:00Z",
+    "homeTeam": "Saudi Arabia",
+    "awayTeam": "Uruguay",
+    "group": "Group H",
+    "location": "Miami Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Hard Rock Stadium",
+    "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 15,
+    "dateUtc": "2026-06-16T01:00:00Z",
+    "homeTeam": "IR Iran",
+    "awayTeam": "New Zealand",
+    "group": "Group G",
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 17,
+    "dateUtc": "2026-06-16T19:00:00Z",
+    "homeTeam": "France",
+    "awayTeam": "Senegal",
+    "group": "Group I",
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 18,
+    "dateUtc": "2026-06-16T22:00:00Z",
+    "homeTeam": "Iraq",
+    "awayTeam": "Norway",
+    "group": "Group I",
+    "location": "Boston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Gillette Stadium",
+    "city": "Boston (Foxborough)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 19,
+    "dateUtc": "2026-06-17T01:00:00Z",
+    "homeTeam": "Argentina",
+    "awayTeam": "Algeria",
+    "group": "Group J",
+    "location": "Kansas City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Arrowhead Stadium",
+    "city": "Kansas City",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 20,
+    "dateUtc": "2026-06-17T04:00:00Z",
+    "homeTeam": "Austria",
+    "awayTeam": "Jordan",
+    "group": "Group J",
+    "location": "San Francisco Bay Area Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Levi's Stadium",
+    "city": "San Francisco Bay Area (Santa Clara)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 23,
+    "dateUtc": "2026-06-17T17:00:00Z",
+    "homeTeam": "Portugal",
+    "awayTeam": "Congo DR",
+    "group": "Group K",
+    "location": "Houston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "NRG Stadium",
+    "city": "Houston",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 22,
+    "dateUtc": "2026-06-17T20:00:00Z",
+    "homeTeam": "England",
+    "awayTeam": "Croatia",
+    "group": "Group L",
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 21,
+    "dateUtc": "2026-06-17T23:00:00Z",
+    "homeTeam": "Ghana",
+    "awayTeam": "Panama",
+    "group": "Group L",
+    "location": "Toronto Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BMO Field",
+    "city": "Toronto",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 24,
+    "dateUtc": "2026-06-18T02:00:00Z",
+    "homeTeam": "Uzbekistan",
+    "awayTeam": "Colombia",
+    "group": "Group K",
+    "location": "Mexico City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Estadio Azteca",
+    "city": "Mexico City",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 25,
+    "dateUtc": "2026-06-18T16:00:00Z",
+    "homeTeam": "Czechia",
+    "awayTeam": "South Africa",
+    "group": "Group A",
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 26,
+    "dateUtc": "2026-06-18T19:00:00Z",
+    "homeTeam": "Switzerland",
+    "awayTeam": "Bosnia and Herzegovina",
+    "group": "Group B",
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 27,
+    "dateUtc": "2026-06-18T22:00:00Z",
+    "homeTeam": "Canada",
+    "awayTeam": "Qatar",
+    "group": "Group B",
+    "location": "BC Place Vancouver",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BC Place",
+    "city": "Vancouver",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 28,
+    "dateUtc": "2026-06-19T01:00:00Z",
+    "homeTeam": "Mexico",
+    "awayTeam": "Korea Republic",
+    "group": "Group A",
+    "location": "Guadalajara Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Estadio Akron",
+    "city": "Guadalajara",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 32,
+    "dateUtc": "2026-06-19T19:00:00Z",
+    "homeTeam": "USA",
+    "awayTeam": "Australia",
+    "group": "Group D",
+    "location": "Seattle Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT2",
+    "stadium": "Lumen Field",
+    "city": "Seattle",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 30,
+    "dateUtc": "2026-06-19T22:00:00Z",
+    "homeTeam": "Scotland",
+    "awayTeam": "Morocco",
+    "group": "Group C",
+    "location": "Boston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Gillette Stadium",
+    "city": "Boston (Foxborough)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 29,
+    "dateUtc": "2026-06-20T01:00:00Z",
+    "homeTeam": "Brazil",
+    "awayTeam": "Haiti",
+    "group": "Group C",
+    "location": "Philadelphia Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Lincoln Financial Field",
+    "city": "Philadelphia",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 31,
+    "dateUtc": "2026-06-20T04:00:00Z",
+    "homeTeam": "Türkiye",
+    "awayTeam": "Paraguay",
+    "group": "Group D",
+    "location": "San Francisco Bay Area Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Levi's Stadium",
+    "city": "San Francisco Bay Area (Santa Clara)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 35,
+    "dateUtc": "2026-06-20T17:00:00Z",
+    "homeTeam": "Netherlands",
+    "awayTeam": "Sweden",
+    "group": "Group F",
+    "location": "Houston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "NRG Stadium",
+    "city": "Houston",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 33,
+    "dateUtc": "2026-06-20T20:00:00Z",
+    "homeTeam": "Germany",
+    "awayTeam": "Côte d'Ivoire",
+    "group": "Group E",
+    "location": "Toronto Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BMO Field",
+    "city": "Toronto",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 34,
+    "dateUtc": "2026-06-21T00:00:00Z",
+    "homeTeam": "Ecuador",
+    "awayTeam": "Curaçao",
+    "group": "Group E",
+    "location": "Kansas City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Arrowhead Stadium",
+    "city": "Kansas City",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 36,
+    "dateUtc": "2026-06-21T04:00:00Z",
+    "homeTeam": "Tunisia",
+    "awayTeam": "Japan",
+    "group": "Group F",
+    "location": "Monterrey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Estadio BBVA",
+    "city": "Monterrey",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 38,
+    "dateUtc": "2026-06-21T16:00:00Z",
+    "homeTeam": "Spain",
+    "awayTeam": "Saudi Arabia",
+    "group": "Group H",
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 39,
+    "dateUtc": "2026-06-21T19:00:00Z",
+    "homeTeam": "Belgium",
+    "awayTeam": "IR Iran",
+    "group": "Group G",
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 37,
+    "dateUtc": "2026-06-21T22:00:00Z",
+    "homeTeam": "Uruguay",
+    "awayTeam": "Cabo Verde",
+    "group": "Group H",
+    "location": "Miami Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Hard Rock Stadium",
+    "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 40,
+    "dateUtc": "2026-06-22T01:00:00Z",
+    "homeTeam": "New Zealand",
+    "awayTeam": "Egypt",
+    "group": "Group G",
+    "location": "BC Place Vancouver",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BC Place",
+    "city": "Vancouver",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 43,
+    "dateUtc": "2026-06-22T17:00:00Z",
+    "homeTeam": "Argentina",
+    "awayTeam": "Austria",
+    "group": "Group J",
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT2/SVT1",
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 42,
+    "dateUtc": "2026-06-22T21:00:00Z",
+    "homeTeam": "France",
+    "awayTeam": "Iraq",
+    "group": "Group I",
+    "location": "Philadelphia Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Lincoln Financial Field",
+    "city": "Philadelphia",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 41,
+    "dateUtc": "2026-06-23T00:00:00Z",
+    "homeTeam": "Norway",
+    "awayTeam": "Senegal",
+    "group": "Group I",
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 44,
+    "dateUtc": "2026-06-23T03:00:00Z",
+    "homeTeam": "Jordan",
+    "awayTeam": "Algeria",
+    "group": "Group J",
+    "location": "San Francisco Bay Area Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Levi's Stadium",
+    "city": "San Francisco Bay Area (Santa Clara)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 47,
+    "dateUtc": "2026-06-23T17:00:00Z",
+    "homeTeam": "Portugal",
+    "awayTeam": "Uzbekistan",
+    "group": "Group K",
+    "location": "Houston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT2/SVT1",
+    "stadium": "NRG Stadium",
+    "city": "Houston",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 45,
+    "dateUtc": "2026-06-23T20:00:00Z",
+    "homeTeam": "England",
+    "awayTeam": "Ghana",
+    "group": "Group L",
+    "location": "Boston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Gillette Stadium",
+    "city": "Boston (Foxborough)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 46,
+    "dateUtc": "2026-06-23T23:00:00Z",
+    "homeTeam": "Panama",
+    "awayTeam": "Croatia",
+    "group": "Group L",
+    "location": "Toronto Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BMO Field",
+    "city": "Toronto",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 48,
+    "dateUtc": "2026-06-24T02:00:00Z",
+    "homeTeam": "Colombia",
+    "awayTeam": "Congo DR",
+    "group": "Group K",
+    "location": "Guadalajara Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Estadio Akron",
+    "city": "Guadalajara",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 51,
+    "dateUtc": "2026-06-24T19:00:00Z",
+    "homeTeam": "Switzerland",
+    "awayTeam": "Canada",
+    "group": "Group B",
+    "location": "BC Place Vancouver",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BC Place",
+    "city": "Vancouver",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 52,
+    "dateUtc": "2026-06-24T19:00:00Z",
+    "homeTeam": "Bosnia and Herzegovina",
+    "awayTeam": "Qatar",
+    "group": "Group B",
+    "location": "Seattle Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Lumen Field",
+    "city": "Seattle",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 50,
+    "dateUtc": "2026-06-24T22:00:00Z",
+    "homeTeam": "Morocco",
+    "awayTeam": "Haiti",
+    "group": "Group C",
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 49,
+    "dateUtc": "2026-06-24T22:00:00Z",
+    "homeTeam": "Scotland",
+    "awayTeam": "Brazil",
+    "group": "Group C",
+    "location": "Miami Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Hard Rock Stadium",
+    "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 53,
+    "dateUtc": "2026-06-25T01:00:00Z",
+    "homeTeam": "Czechia",
+    "awayTeam": "Mexico",
+    "group": "Group A",
+    "location": "Mexico City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Estadio Azteca",
+    "city": "Mexico City",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 54,
+    "dateUtc": "2026-06-25T01:00:00Z",
+    "homeTeam": "South Africa",
+    "awayTeam": "Korea Republic",
+    "group": "Group A",
+    "location": "Monterrey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT2",
+    "stadium": "Estadio BBVA",
+    "city": "Monterrey",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 55,
+    "dateUtc": "2026-06-25T20:00:00Z",
+    "homeTeam": "Curaçao",
+    "awayTeam": "Côte d'Ivoire",
+    "group": "Group E",
+    "location": "Philadelphia Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "Lincoln Financial Field",
+    "city": "Philadelphia",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 56,
+    "dateUtc": "2026-06-25T20:00:00Z",
+    "homeTeam": "Ecuador",
+    "awayTeam": "Germany",
+    "group": "Group E",
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 57,
+    "dateUtc": "2026-06-25T23:00:00Z",
+    "homeTeam": "Japan",
+    "awayTeam": "Sweden",
+    "group": "Group F",
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 58,
+    "dateUtc": "2026-06-25T23:00:00Z",
+    "homeTeam": "Tunisia",
+    "awayTeam": "Netherlands",
+    "group": "Group F",
+    "location": "Kansas City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT2",
+    "stadium": "Arrowhead Stadium",
+    "city": "Kansas City",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 59,
+    "dateUtc": "2026-06-26T02:00:00Z",
+    "homeTeam": "Türkiye",
+    "awayTeam": "USA",
+    "group": "Group D",
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 60,
+    "dateUtc": "2026-06-26T02:00:00Z",
+    "homeTeam": "Paraguay",
+    "awayTeam": "Australia",
+    "group": "Group D",
+    "location": "San Francisco Bay Area Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Levi's Stadium",
+    "city": "San Francisco Bay Area (Santa Clara)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 61,
+    "dateUtc": "2026-06-26T19:00:00Z",
+    "homeTeam": "Norway",
+    "awayTeam": "France",
+    "group": "Group I",
+    "location": "Boston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Gillette Stadium",
+    "city": "Boston (Foxborough)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 62,
+    "dateUtc": "2026-06-26T19:00:00Z",
+    "homeTeam": "Senegal",
+    "awayTeam": "Iraq",
+    "group": "Group I",
+    "location": "Toronto Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BMO Field",
+    "city": "Toronto",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 66,
+    "dateUtc": "2026-06-27T00:00:00Z",
+    "homeTeam": "Uruguay",
+    "awayTeam": "Spain",
+    "group": "Group H",
+    "location": "Guadalajara Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Estadio Akron",
+    "city": "Guadalajara",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 65,
+    "dateUtc": "2026-06-27T00:00:00Z",
+    "homeTeam": "Cabo Verde",
+    "awayTeam": "Saudi Arabia",
+    "group": "Group H",
+    "location": "Houston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "NRG Stadium",
+    "city": "Houston",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 63,
+    "dateUtc": "2026-06-27T03:00:00Z",
+    "homeTeam": "Egypt",
+    "awayTeam": "IR Iran",
+    "group": "Group G",
+    "location": "Seattle Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Lumen Field",
+    "city": "Seattle",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 64,
+    "dateUtc": "2026-06-27T03:00:00Z",
+    "homeTeam": "New Zealand",
+    "awayTeam": "Belgium",
+    "group": "Group G",
+    "location": "BC Place Vancouver",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "BC Place",
+    "city": "Vancouver",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 67,
+    "dateUtc": "2026-06-27T21:00:00Z",
+    "homeTeam": "Panama",
+    "awayTeam": "England",
+    "group": "Group L",
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT1",
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 68,
+    "dateUtc": "2026-06-27T21:00:00Z",
+    "homeTeam": "Croatia",
+    "awayTeam": "Ghana",
+    "group": "Group L",
+    "location": "Philadelphia Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "SVT2",
+    "stadium": "Lincoln Financial Field",
+    "city": "Philadelphia",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 71,
+    "dateUtc": "2026-06-27T23:30:00Z",
+    "homeTeam": "Colombia",
+    "awayTeam": "Portugal",
+    "group": "Group K",
+    "location": "Miami Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Hard Rock Stadium",
+    "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 72,
+    "dateUtc": "2026-06-27T23:30:00Z",
+    "homeTeam": "Congo DR",
+    "awayTeam": "Uzbekistan",
+    "group": "Group K",
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 69,
+    "dateUtc": "2026-06-28T02:00:00Z",
+    "homeTeam": "Algeria",
+    "awayTeam": "Austria",
+    "group": "Group J",
+    "location": "Kansas City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Arrowhead Stadium",
+    "city": "Kansas City",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 70,
+    "dateUtc": "2026-06-28T02:00:00Z",
+    "homeTeam": "Jordan",
+    "awayTeam": "Argentina",
+    "group": "Group J",
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 73,
+    "dateUtc": "2026-06-28T19:00:00Z",
+    "homeTeam": "2A",
+    "awayTeam": "2B",
+    "group": null,
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 76,
+    "dateUtc": "2026-06-29T17:00:00Z",
+    "homeTeam": "1C",
+    "awayTeam": "2F",
+    "group": null,
+    "location": "Houston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "NRG Stadium",
+    "city": "Houston",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 74,
+    "dateUtc": "2026-06-29T20:30:00Z",
+    "homeTeam": "1E",
+    "awayTeam": "3ABCDF",
+    "group": null,
+    "location": "Boston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Gillette Stadium",
+    "city": "Boston (Foxborough)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 75,
+    "dateUtc": "2026-06-30T01:00:00Z",
+    "homeTeam": "1F",
+    "awayTeam": "2C",
+    "group": null,
+    "location": "Monterrey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Estadio BBVA",
+    "city": "Monterrey",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 78,
+    "dateUtc": "2026-06-30T17:00:00Z",
+    "homeTeam": "2E",
+    "awayTeam": "2I",
+    "group": null,
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 77,
+    "dateUtc": "2026-06-30T21:00:00Z",
+    "homeTeam": "1I",
+    "awayTeam": "3CDFGH",
+    "group": null,
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 79,
+    "dateUtc": "2026-07-01T01:00:00Z",
+    "homeTeam": "1A",
+    "awayTeam": "3CEFHI",
+    "group": null,
+    "location": "Mexico City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Estadio Azteca",
+    "city": "Mexico City",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 80,
+    "dateUtc": "2026-07-01T16:00:00Z",
+    "homeTeam": "1L",
+    "awayTeam": "3EHIJK",
+    "group": null,
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 82,
+    "dateUtc": "2026-07-01T20:00:00Z",
+    "homeTeam": "1G",
+    "awayTeam": "3AEHIJ",
+    "group": null,
+    "location": "Seattle Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Lumen Field",
+    "city": "Seattle",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 81,
+    "dateUtc": "2026-07-02T00:00:00Z",
+    "homeTeam": "1D",
+    "awayTeam": "3BEFIJ",
+    "group": null,
+    "location": "San Francisco Bay Area Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Levi's Stadium",
+    "city": "San Francisco Bay Area (Santa Clara)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 84,
+    "dateUtc": "2026-07-02T19:00:00Z",
+    "homeTeam": "1H",
+    "awayTeam": "2J",
+    "group": null,
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 83,
+    "dateUtc": "2026-07-02T23:00:00Z",
+    "homeTeam": "2K",
+    "awayTeam": "2L",
+    "group": null,
+    "location": "Toronto Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "BMO Field",
+    "city": "Toronto",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 85,
+    "dateUtc": "2026-07-03T03:00:00Z",
+    "homeTeam": "1B",
+    "awayTeam": "3EFGIJ",
+    "group": null,
+    "location": "BC Place Vancouver",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "BC Place",
+    "city": "Vancouver",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 88,
+    "dateUtc": "2026-07-03T18:00:00Z",
+    "homeTeam": "2D",
+    "awayTeam": "2G",
+    "group": null,
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 86,
+    "dateUtc": "2026-07-03T22:00:00Z",
+    "homeTeam": "1J",
+    "awayTeam": "2H",
+    "group": null,
+    "location": "Miami Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Hard Rock Stadium",
+    "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 87,
+    "dateUtc": "2026-07-04T01:30:00Z",
+    "homeTeam": "1K",
+    "awayTeam": "3DEIJL",
+    "group": null,
+    "location": "Kansas City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Arrowhead Stadium",
+    "city": "Kansas City",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 90,
+    "dateUtc": "2026-07-04T17:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Houston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "NRG Stadium",
+    "city": "Houston",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 89,
+    "dateUtc": "2026-07-04T21:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Philadelphia Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Lincoln Financial Field",
+    "city": "Philadelphia",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 91,
+    "dateUtc": "2026-07-05T20:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 92,
+    "dateUtc": "2026-07-06T00:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Mexico City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Estadio Azteca",
+    "city": "Mexico City",
+    "country": "Mexico"
+  },
+  {
+    "matchNumber": 93,
+    "dateUtc": "2026-07-06T19:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 94,
+    "dateUtc": "2026-07-07T00:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Seattle Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Lumen Field",
+    "city": "Seattle",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 95,
+    "dateUtc": "2026-07-07T16:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 96,
+    "dateUtc": "2026-07-07T20:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "BC Place Vancouver",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "BC Place",
+    "city": "Vancouver",
+    "country": "Canada"
+  },
+  {
+    "matchNumber": 97,
+    "dateUtc": "2026-07-09T20:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Boston Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Gillette Stadium",
+    "city": "Boston (Foxborough)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 98,
+    "dateUtc": "2026-07-10T19:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Los Angeles Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "SoFi Stadium",
+    "city": "Los Angeles (Inglewood)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 99,
+    "dateUtc": "2026-07-11T21:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Miami Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Hard Rock Stadium",
+    "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 100,
+    "dateUtc": "2026-07-12T01:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Kansas City Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Arrowhead Stadium",
+    "city": "Kansas City",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 101,
+    "dateUtc": "2026-07-14T19:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Dallas Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "AT&T Stadium",
+    "city": "Dallas (Arlington)",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 102,
+    "dateUtc": "2026-07-15T19:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 103,
+    "dateUtc": "2026-07-18T21:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "Miami Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "Hard Rock Stadium",
+    "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 104,
+    "dateUtc": "2026-07-19T19:00:00Z",
+    "homeTeam": "To be announced",
+    "awayTeam": "To be announced",
+    "group": null,
+    "location": "New York/New Jersey Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": null,
+    "stadium": "MetLife Stadium",
+    "city": "New York/New Jersey (East Rutherford)",
+    "country": "USA"
+  }
+];
+
+const TZ_LOCAL = 'Europe/Stockholm';
+let tz = 'UTC';
+// Per-team highlight colors — warm/pastel tones that read well on the dark navy background
+const PALETTE = ['#f2a35c', '#e07bea', '#6fd98f', '#f4838f', '#c4a7ff', '#ffd166', '#5ee0c2', '#cde06c'];
+const teamColors = new Map(); // team -> color; membership in this map = selected
+const isSel = name => teamColors.has(name);
+const colorOf = name => teamColors.get(name);
+let filterOnly = false;
+const selectedVenues = new Set(); // keyed by m.location (no selection = show all)
+const selectedCountries = new Set();
+// Team filter (when toggled on), country filter and venue filter combine
+const matchVisible = m =>
+  (!filterOnly || teamColors.size === 0 || isSel(m.homeTeam) || isSel(m.awayTeam))
+  && (selectedCountries.size === 0 || selectedCountries.has(m.country))
+  && (selectedVenues.size === 0 || selectedVenues.has(m.location));
+
+function toggleTeam(team) {
+  if (isSel(team)) { teamColors.delete(team); return; }
+  const used = new Set(teamColors.values());
+  teamColors.set(team, PALETTE.find(c => !used.has(c)) ?? PALETTE[teamColors.size % PALETTE.length]);
+}
+
+// Team name, colored if selected
+const teamSpan = name => isSel(name) ? `<span style="color:${colorOf(name)}">${name}</span>` : name;
+
+function stageOf(n) {
+  if (n <= 72) return null;            // group stage: show the group instead
+  if (n <= 88) return 'Round of 32';
+  if (n <= 96) return 'Round of 16';
+  if (n <= 100) return 'Quarter-final';
+  if (n <= 102) return 'Semi-final';
+  if (n === 103) return 'Third place';
+  return 'Final';
+}
+
+function bcBadge(match) {
+  if (!match.broadcaster) return '';
+  return match.broadcaster.split('/').map(ch =>
+    `<img class="bc-logo" src="img/${ch.toLowerCase()}.svg" alt="${ch}" title="${ch}">`
+  ).join('');
+}
+
+function prettyTeam(name) {
+  let m;
+  if ((m = /^1([A-L])$/.exec(name))) return { text: `Group ${m[1]} winner`, ph: true };
+  if ((m = /^2([A-L])$/.exec(name))) return { text: `Group ${m[1]} runner-up`, ph: true };
+  if ((m = /^3([A-L]+)$/.exec(name))) return { text: `3rd place (${m[1].split('').join('/')})`, ph: true };
+  if (name === 'To be announced') return { text: 'TBD', ph: true };
+  return { text: name, ph: false };
+}
+
+// Date + time of a match in the active timezone
+function partsFor(iso) {
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date(iso));
+  const get = t => p.find(x => x.type === t).value;
+  return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}` };
+}
+
+// Abbreviation like "UTC" / "CEST" (whole tournament is June–July, so one sample suffices)
+function tzAbbr() {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, timeZoneName: 'short' })
+    .formatToParts(new Date(MATCHES[0].dateUtc));
+  return p.find(x => x.type === 'timeZoneName')?.value || tz;
+}
+
+const list = document.getElementById('list');
+const calendar = document.getElementById('calendar');
+
+function renderList() {
+  list.innerHTML = '';
+  const fmtDay = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz });
+  const abbr = tzAbbr();
+  let currentDay = '';
+
+  for (const match of MATCHES) {
+    if (!matchVisible(match)) continue;
+    const dt = new Date(match.dateUtc);
+    const day = fmtDay.format(dt);
+    if (day !== currentDay) {
+      currentDay = day;
+      const h = document.createElement('div');
+      h.className = 'day';
+      h.textContent = day;
+      list.appendChild(h);
+    }
+
+    const home = prettyTeam(match.homeTeam);
+    const away = prettyTeam(match.awayTeam);
+    const played = match.homeScore !== null && match.awayScore !== null;
+    const stage = stageOf(match.matchNumber);
+    const metaParts = [stage ? `<span class="stage-tag">${stage}</span>` : `<span class="stage-tag">${match.group}</span>`, `${match.stadium}, ${match.city}, ${match.country}`, `Match ${match.matchNumber}`];
+    if (match.broadcaster) metaParts.push(bcBadge(match));
+
+    const card = document.createElement('div');
+    card.className = 'match' + (played ? ' played' : '')
+      + (isSel(match.homeTeam) || isSel(match.awayTeam) ? ' sel' : '');
+    card.innerHTML = `
+      <div class="time">${partsFor(match.dateUtc).time}<small>${abbr}</small></div>
+      <div class="team home${home.ph ? ' placeholder' : ''}${isSel(match.homeTeam) ? ' sel' : ''}">${isSel(match.homeTeam) ? teamSpan(match.homeTeam) : home.text}</div>
+      <div class="score${played ? '' : ' vs'}">${played ? match.homeScore + ' – ' + match.awayScore : 'vs'}</div>
+      <div class="team away${away.ph ? ' placeholder' : ''}${isSel(match.awayTeam) ? ' sel' : ''}">${isSel(match.awayTeam) ? teamSpan(match.awayTeam) : away.text}</div>
+      <div class="meta">${metaParts.join(' · ')}</div>`;
+    list.appendChild(card);
+  }
+}
+
+function renderCalendar() {
+  calendar.innerHTML = '';
+
+  const byDate = new Map(); // 'YYYY-MM-DD' in active tz -> [{match, time}]
+  for (const match of MATCHES) {
+    if (!matchVisible(match)) continue;
+    const { date, time } = partsFor(match.dateUtc);
+    if (!byDate.has(date)) byDate.set(date, []);
+    byDate.get(date).push({ match, time });
+  }
+
+  const fmtMonth = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const months = [...new Set([...byDate.keys()].map(k => k.slice(0, 7)))].sort();
+
+  for (const ym of months) {
+    const [year, month] = ym.split('-').map(Number);
+    const first = new Date(Date.UTC(year, month - 1, 1));
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+    const title = document.createElement('div');
+    title.className = 'month-title';
+    title.textContent = fmtMonth.format(first);
+    calendar.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'cal-grid';
+    for (const wd of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
+      const h = document.createElement('div');
+      h.className = 'cal-weekday';
+      h.textContent = wd;
+      grid.appendChild(h);
+    }
+
+    const leadingBlanks = (first.getUTCDay() + 6) % 7; // Monday-first offset
+    for (let i = 0; i < leadingBlanks; i++) {
+      const blank = document.createElement('div');
+      blank.className = 'cal-cell empty';
+      grid.appendChild(blank);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = `${ym}-${String(day).padStart(2, '0')}`;
+      const dayMatches = byDate.get(key) || [];
+      const cell = document.createElement('div');
+      cell.className = 'cal-cell' + (dayMatches.length ? ' has-matches' : '');
+      const num = document.createElement('div');
+      num.className = 'cal-daynum';
+      num.textContent = day;
+      cell.appendChild(num);
+
+      for (const { match, time } of dayMatches) {
+        const home = prettyTeam(match.homeTeam);
+        const away = prettyTeam(match.awayTeam);
+        const played = match.homeScore !== null && match.awayScore !== null;
+        const mid = played ? `<span class="cm-score">${match.homeScore}–${match.awayScore}</span>` : '–';
+        const entry = document.createElement('div');
+        entry.className = 'cal-match'
+          + (match.broadcaster ? (match.broadcaster.startsWith('SVT') ? ' bc-svt' : ' bc-tv4') : '')
+          + (isSel(match.homeTeam) || isSel(match.awayTeam) ? ' sel' : '');
+        entry.title = `${home.text} vs ${away.text} · ${match.stadium}, ${match.city}, ${match.country} · Match ${match.matchNumber}`
+          + (match.broadcaster ? ` · ${match.broadcaster}` : '');
+        entry.innerHTML = `<span class="cm-time">${time}</span>${bcBadge(match)}
+          <span class="cm-teams${home.ph || away.ph ? ' placeholder' : ''}">${isSel(match.homeTeam) ? teamSpan(match.homeTeam) : home.text} ${mid} ${isSel(match.awayTeam) ? teamSpan(match.awayTeam) : away.text}</span>`;
+        cell.appendChild(entry);
+      }
+      grid.appendChild(cell);
+    }
+    calendar.appendChild(grid);
+  }
+}
+
+// ---- Groups sidebar ----
+function computeGroups() {
+  const groups = new Map(); // 'Group A' -> Map(team -> stats)
+  for (const m of MATCHES) {
+    if (m.matchNumber > 72) continue;
+    if (!groups.has(m.group)) groups.set(m.group, new Map());
+    const g = groups.get(m.group);
+    for (const t of [m.homeTeam, m.awayTeam]) {
+      if (!g.has(t)) g.set(t, { team: t, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
+    }
+    if (m.homeScore === null || m.awayScore === null) continue;
+    const h = g.get(m.homeTeam), a = g.get(m.awayTeam);
+    h.p++; a.p++;
+    h.gf += m.homeScore; h.ga += m.awayScore;
+    a.gf += m.awayScore; a.ga += m.homeScore;
+    if (m.homeScore > m.awayScore) { h.w++; a.l++; h.pts += 3; }
+    else if (m.homeScore < m.awayScore) { a.w++; h.l++; a.pts += 3; }
+    else { h.d++; a.d++; h.pts++; a.pts++; }
+  }
+  // Sort: points, goal difference, goals scored, name (simplified FIFA tiebreakers)
+  return [...groups.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([name, teams]) => ({
+    name,
+    rows: [...teams.values()].sort((a, b) =>
+      b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || a.team.localeCompare(b.team))
+  }));
+}
+
+function renderTeamsBar() {
+  const bar = document.getElementById('teams-bar');
+  bar.innerHTML = '';
+
+  const countryPanel = document.createElement('div');
+  countryPanel.className = 'group-card teams-panel';
+  const cTitle = document.createElement('h3');
+  cTitle.textContent = 'Host country';
+  cTitle.title = 'Click a country to show only matches played there';
+  countryPanel.appendChild(cTitle);
+  const countries = [...new Set(allVenues().map(v => v.country))].sort((a, b) => a.localeCompare(b));
+  for (const country of countries) {
+    const chip = document.createElement('span');
+    chip.className = 'team-chip venue-chip' + (selectedCountries.has(country) ? ' sel' : '');
+    chip.textContent = country;
+    chip.addEventListener('click', () => {
+      if (selectedCountries.has(country)) selectedCountries.delete(country);
+      else selectedCountries.add(country);
+      renderAll();
+    });
+    countryPanel.appendChild(chip);
+  }
+  bar.appendChild(countryPanel);
+
+  const venuePanel = document.createElement('div');
+  venuePanel.className = 'group-card teams-panel';
+  const vTitle = document.createElement('h3');
+  vTitle.textContent = 'Venues';
+  vTitle.title = 'Click a venue to show only its matches';
+  venuePanel.appendChild(vTitle);
+  for (const venue of allVenues()) {
+    const chip = document.createElement('span');
+    chip.className = 'team-chip venue-chip' + (selectedVenues.has(venue.location) ? ' sel' : '');
+    chip.textContent = venue.city;
+    chip.title = venue.stadium;
+    chip.addEventListener('click', () => {
+      if (selectedVenues.has(venue.location)) selectedVenues.delete(venue.location);
+      else selectedVenues.add(venue.location);
+      renderAll();
+    });
+    venuePanel.appendChild(chip);
+  }
+  bar.appendChild(venuePanel);
+
+  const panel = document.createElement('div');
+  panel.className = 'group-card teams-panel';
+  const title = document.createElement('h3');
+  title.textContent = 'Teams';
+  title.title = 'Click a team to highlight it in all views';
+  panel.appendChild(title);
+
+  const toggle = document.createElement('span');
+  toggle.className = 'team-chip filter-toggle' + (filterOnly ? ' on' : '');
+  toggle.textContent = filterOnly ? '✓ Only selected' : 'Only selected';
+  toggle.title = 'Show only matches involving the selected teams';
+  toggle.addEventListener('click', () => { filterOnly = !filterOnly; renderAll(); });
+  panel.appendChild(toggle);
+  const allTeams = [...new Set(MATCHES.filter(m => m.matchNumber <= 72).flatMap(m => [m.homeTeam, m.awayTeam]))]
+    .sort((a, b) => a.localeCompare(b));
+  for (const team of allTeams) {
+    const chip = document.createElement('span');
+    chip.className = 'team-chip' + (isSel(team) ? ' sel' : '');
+    chip.textContent = team;
+    if (isSel(team)) {
+      chip.style.color = colorOf(team);
+      chip.style.borderColor = colorOf(team);
+    }
+    chip.addEventListener('click', () => {
+      toggleTeam(team);
+      renderAll();
+    });
+    panel.appendChild(chip);
+  }
+  bar.appendChild(panel);
+}
+
+function allVenues() {
+  const seen = new Map();
+  for (const m of MATCHES) {
+    if (!seen.has(m.location)) seen.set(m.location, { location: m.location, stadium: m.stadium, city: m.city, country: m.country });
+  }
+  return [...seen.values()].sort((a, b) => a.city.localeCompare(b.city));
+}
+
+function renderVenues() {
+  const container = document.getElementById('venues');
+  container.innerHTML = '';
+  const fmtDate = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz });
+
+  for (const venue of allVenues()) {
+    const visibleMatches = MATCHES.filter(m => m.location === venue.location && matchVisible(m));
+    if (!visibleMatches.length) continue;
+
+    const matchRows = visibleMatches.map(m => {
+      const played = m.homeScore !== null && m.awayScore !== null;
+      const home = prettyTeam(m.homeTeam), away = prettyTeam(m.awayTeam);
+      const knockout = stageOf(m.matchNumber);
+      return `<div class="gm${isSel(m.homeTeam) || isSel(m.awayTeam) ? ' sel' : ''}">
+        <span class="gm-date">${fmtDate.format(new Date(m.dateUtc))} ${partsFor(m.dateUtc).time}</span>
+        <span class="gm-teams${home.ph || away.ph ? ' placeholder' : ''}">${home.ph ? home.text : teamSpan(m.homeTeam)} – ${away.ph ? away.text : teamSpan(m.awayTeam)}</span>
+        <span class="gm-res${played ? '' : ' vs'}">${played ? m.homeScore + '–' + m.awayScore : 'vs'}</span>
+        <span class="gm-bc">${bcBadge(m)}</span>
+        <span class="gm-loc">${knockout ? `<span class="stage-tag">${knockout}</span>` : m.group}</span>
+      </div>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.innerHTML = `<h3>${venue.stadium}</h3>
+      <div class="venue-city">${venue.city}, ${venue.country}</div>
+      <div class="gm-list">${matchRows}</div>`;
+    container.appendChild(card);
+  }
+}
+
+function renderGroups() {
+  const container = document.getElementById('groups');
+  container.innerHTML = '';
+  const fmtDate = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz });
+
+  for (const group of computeGroups()) {
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    const rows = group.rows.map(r => {
+      const gd = r.gf - r.ga;
+      return `<tr${isSel(r.team) ? ' class="sel"' : ''}>
+        <td class="t" title="${r.team}">${teamSpan(r.team)}</td>
+        <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
+        <td>${gd > 0 ? '+' + gd : gd}</td><td class="pts">${r.pts}</td>
+      </tr>`;
+    }).join('');
+
+    const visibleMatches = MATCHES.filter(m => m.group === group.name && matchVisible(m));
+    if (!visibleMatches.length) continue;
+    const matchRows = visibleMatches.map(m => {
+      const played = m.homeScore !== null && m.awayScore !== null;
+      return `<div class="gm${isSel(m.homeTeam) || isSel(m.awayTeam) ? ' sel' : ''}">
+        <span class="gm-date">${fmtDate.format(new Date(m.dateUtc))} ${partsFor(m.dateUtc).time}</span>
+        <span class="gm-teams">${teamSpan(m.homeTeam)} – ${teamSpan(m.awayTeam)}</span>
+        <span class="gm-res${played ? '' : ' vs'}">${played ? m.homeScore + '–' + m.awayScore : 'vs'}</span>
+        <span class="gm-bc">${bcBadge(m)}</span>
+        <span class="gm-loc">${m.stadium}, ${m.city}, ${m.country}</span>
+      </div>`;
+    }).join('');
+
+    card.innerHTML = `<h3>${group.name}</h3>
+      <table>
+        <colgroup><col style="width:43%"><col><col><col><col><col style="width:13%"><col></colgroup>
+        <thead><tr><th class="t">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="gm-list">${matchRows}</div>`;
+    container.appendChild(card);
+  }
+}
+
+// ---- Timezone toggle ----
+const btnTz = document.getElementById('btn-tz');
+const subtitle = document.getElementById('subtitle');
+function renderAll() {
+  renderTeamsBar();
+  renderList();
+  renderCalendar();
+  renderGroups();
+  renderVenues();
+  btnTz.textContent = tz === 'UTC' ? 'Show Stockholm time' : 'Show UTC';
+  subtitle.textContent = `All 104 matches, sorted by kick-off time. Times are ${tz === 'UTC' ? 'UTC' : `Europe/Stockholm (${tzAbbr()})`}.`;
+}
+btnTz.addEventListener('click', () => { tz = tz === 'UTC' ? TZ_LOCAL : 'UTC'; renderAll(); });
+
+// ---- View toggle ----
+const VIEWS = ['list', 'calendar', 'groups', 'venues'];
+for (const v of VIEWS) {
+  document.getElementById('btn-' + v).addEventListener('click', () => showView(v));
+}
+function showView(view) {
+  for (const v of VIEWS) {
+    document.getElementById(v).hidden = v !== view;
+    document.getElementById('btn-' + v).classList.toggle('active', v === view);
+  }
+}
+
+renderAll();
+showView('groups');
+</script>
+</body>
+</html>
+
