@@ -435,6 +435,8 @@
   /* Team whose group position is settled (qualified + seeded) */
   .bj-row.bj-decided { background: rgba(95, 217, 143, .16); }
   .bj-flag { flex: 0 0 auto; width: 18px; height: 13px; border: 1px solid var(--line); border-radius: 2px; background: var(--card-played); }
+  .bj-flag-sm { width: 14px; height: 10px; border: 1px solid var(--line); border-radius: 2px; vertical-align: -1px; margin-right: 3px; }
+  .bj-vs { margin: 0 3px; opacity: .6; }
   .bj-venue { display: flex; align-items: center; gap: 5px; padding: 3px 7px 2px; font-size: .58rem; color: var(--muted); }
   .bj-venue-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
   .bj-venue-text span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -461,16 +463,27 @@
   .bj-thirds { max-width: 760px; margin: 0 auto 18px; }
   .bj-thirds-title { font-size: .9rem; margin: 0 0 10px; text-align: center; color: var(--text); }
   .bj-thirds-grid { display: grid; grid-template-rows: repeat(4, auto); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px 14px; }
-  .bj-th-item { display: flex; align-items: center; gap: 7px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); font-size: .74rem; }
+  .bj-th-item { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); font-size: .74rem; }
   .bj-th-item.q { border-color: var(--hl-border); background: var(--hl-bg); }
   .bj-th-item:not(.q) { opacity: .5; }
   .bj-th-rank { flex: 0 0 auto; width: 16px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .bj-th-team { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bj-th-team { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bj-th-grp { flex: 0 0 auto; font-size: .62rem; color: var(--muted); white-space: nowrap; }
   .bj-th-gd { flex: 0 0 auto; min-width: 24px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
   .bj-th-pts { flex: 0 0 auto; color: var(--muted); font-variant-numeric: tabular-nums; }
   .bj-combo { text-align: center; color: var(--muted); font-size: .74rem; margin-top: 12px; }
-  @media (max-width: 560px) { .bj-thirds-grid { grid-template-rows: repeat(6, auto); } }
+  @media (max-width: 720px) { .bj-thirds-grid { grid-template-rows: repeat(6, auto); } }
+  @media (max-width: 480px) { .bj-thirds-grid { grid-template-rows: repeat(12, auto); } }
+
+  /* Mobile round-by-round list — hidden on desktop, shown instead of the tree on phones */
+  .bj-list { display: none; max-width: 460px; margin: 0 auto; }
+  .bj-list-round { margin-bottom: 16px; }
+  .bj-list-head { font-size: .95rem; margin: 0 0 8px; color: var(--text); border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  .bj-list-cards { display: flex; flex-direction: column; gap: 10px; }
+  .bj-list .bj-card { width: 100%; }
+  .bj-list .bj-when { font-size: .66rem; }
+  .bj-list .bj-row { font-size: .82rem; padding: 6px 9px; }
+  .bj-list .bj-num { font-size: .68rem; }
 
   /* Connectors — left side flows right, right side flows left */
   .bj-side-l .bj-col .bj-seeds .bj-seed::after,
@@ -496,19 +509,10 @@
   .bj-sf-r::after { content: ''; position: absolute; right: -12px; top: 50%; width: 12px; border-top: 2px solid var(--line); }
 
   /* Too many columns to fit a phone — fall back to fixed-size cards with horizontal scroll */
+  /* Mobile: drop the wide tree, show the round-by-round list (no horizontal scroll) */
   @media (max-width: 700px) {
-    .bj-scroll { overflow-x: auto; }
-    .bj { width: max-content; }
-    .bj-side, .bj-col, .bj-center, .bj-sf { flex: 0 0 auto; }
-    .bj-seed { padding: 6px 20px; min-width: 124px; }
-    .bj-row { font-size: .68rem; padding: 3px 5px; }
-    .bj-final, .bj-third { width: 180px; }
-    .bj-sf { width: 168px; }
-    .bj-center { min-width: 240px; }
-    .bj-side-l .bj-col .bj-seeds .bj-seed::after,
-    .bj-side-r .bj-col:not(:first-child) .bj-seeds .bj-seed::after,
-    .bj-side-l .bj-col:not(:first-child) .bj-seeds .bj-seed::before,
-    .bj-side-r .bj-col:not(:last-child) .bj-seeds .bj-seed::before { width: 20px; }
+    .bj-scroll { display: none; }
+    .bj-list { display: block; }
   }
 </style>
 </head>
@@ -1136,7 +1140,7 @@ function renderBracket() {
 
   // Resolve one side of a tie to { html, real, ph } — a real team gets its flag + code,
   // an unresolved slot gets the compact placeholder code (1A, 3ABCDF, W74, RU101).
-  const side = (resolved, playedName, played) => {
+  const side = (resolved, playedName, played, expand) => {
     const team = (played && playedName) || (resolved && resolved.team) || null;
     if (team && !bjPlaceholder(team)) {
       const code = TEAM_CODE[team] || disp(team);
@@ -1146,19 +1150,32 @@ function renderBracket() {
     let code = L.tbd;
     if (resolved) {
       if (resolved.slot && !/to be announced/i.test(resolved.slot)) code = resolved.slot;
-      else if (resolved.sourceType === 'winner') code = 'W' + resolved.sourceMatch;
+      else if (resolved.sourceType === 'winner') {
+        // Round of 16: until the round-of-32 leg is played, show the two countries in it
+        // (only when expanded — i.e. the mobile list; the desktop tree keeps the Wxx code)
+        const leg = byBracket.get(resolved.sourceMatch);
+        const lm = byMatch.get(resolved.sourceMatch);
+        const legPlayed = lm && lm.homeScore !== null && lm.awayScore !== null;
+        const t1 = leg && leg.home && leg.home.team, t2 = leg && leg.away && leg.away.team;
+        if (expand && resolved.sourceMatch >= 73 && resolved.sourceMatch <= 88 && t1 && t2 && !legPlayed) {
+          const mini = t => `${TEAM_CODE[t] ? `<img class="bj-flag-sm" src="img/flags/${TEAM_CODE[t].toLowerCase()}.svg" alt="">` : ''}${TEAM_CODE[t] || disp(t)}`;
+          return { flag: '', html: `${mini(t1)}<span class="bj-vs">/</span>${mini(t2)}`, real: null, ph: true, title: `${disp(t1)} / ${disp(t2)}` };
+        }
+        code = 'W' + resolved.sourceMatch;
+      }
       else if (resolved.sourceType === 'loser') code = 'RU' + resolved.sourceMatch;
     }
     return { flag: '<span class="bj-flag"></span>', html: code, real: null, ph: true, title: '' };
   };
 
   // One match card. numPos places the "Mxx" label: 'l' left, 'r' right, 'b' below.
-  const card = (n, numPos) => {
+  // expand=true (mobile list) shows the round-of-32 matchup for undecided round-of-16 slots.
+  const card = (n, numPos, expand) => {
     const b = byBracket.get(n), m = byMatch.get(n);
     if (!b && !m) return '';
     const played = m && m.homeScore !== null && m.awayScore !== null;
-    const home = side(b && b.home, m && m.homeTeam, played);
-    const away = side(b && b.away, m && m.awayTeam, played);
+    const home = side(b && b.home, m && m.homeTeam, played, expand);
+    const away = side(b && b.away, m && m.awayTeam, played, expand);
     const dt = (b && b.dateUtc) || (m && m.dateUtc);
     const hWin = played && m.homeScore > m.awayScore;
     const aWin = played && m.awayScore > m.homeScore;
@@ -1237,11 +1254,26 @@ function renderBracket() {
     </div>`;
   }
 
+  // Mobile: a round-by-round vertical list (shown instead of the tree on narrow screens,
+  // so there is no horizontal scrolling). Reuses the same cards.
+  const rounds = [
+    [L.stages[0], [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88]],
+    [L.stages[1], [89, 90, 91, 92, 93, 94, 95, 96]],
+    [L.stages[2], [97, 98, 99, 100]],
+    [L.stages[3], [101, 102]],
+    [L.thirdPlay, [103]],
+    [L.stages[5], [104]],
+  ];
+  const listHtml = `<div class="bj-list">${rounds.map(([label, nums]) => `<div class="bj-list-round">
+    <h3 class="bj-list-head">${label}</h3>
+    <div class="bj-list-cards">${nums.map(n => card(n, 'b', true)).join('')}</div>
+  </div>`).join('')}</div>`;
+
   el.innerHTML = thirdsPanel + `<div class="bj-scroll"><div class="bj">
     <div class="bj-side bj-side-l">${leftCols}</div>
     ${centre}
     <div class="bj-side bj-side-r">${rightCols}</div>
-  </div></div>`;
+  </div></div>` + listHtml;
 }
 
 // ---- Mobile filters toggle ----
