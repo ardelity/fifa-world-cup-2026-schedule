@@ -1,0 +1,276 @@
+// Sidecar: periodically fetches the fixture feed, applies the same transform +
+// enrichment as the build-time pipeline (README "Refreshing data", add_locations.mjs,
+// add_broadcasters.mjs) and atomically writes /data/matches.json for nginx to serve.
+// On any error the current file is left untouched — the site keeps serving stale data.
+import { writeFileSync, renameSync, readFileSync, existsSync } from 'fs';
+
+const FEED_URL = process.env.FEED_URL || 'https://fixturedownload.com/feed/json/fifa-world-cup-2026';
+const OUT_FILE = process.env.OUT_FILE || '/data/matches.json';
+// Ranked list of the third-placed teams (one per group), best first — written next
+// to matches.json so the site can show which "best thirds" currently qualify.
+const THIRDS_FILE = process.env.THIRDS_FILE || OUT_FILE.replace(/matches\.json$/, 'best-thirds.json');
+const INTERVAL_MS = (parseInt(process.env.INTERVAL_SECONDS, 10) || 900) * 1000;
+
+// FIFA's sanitized venue names -> real stadium + host city (mirror of add_locations.mjs)
+const VENUES = {
+  'Atlanta Stadium':                { stadium: 'Mercedes-Benz Stadium', city: 'Atlanta', country: 'USA' },
+  'BC Place Vancouver':             { stadium: 'BC Place', city: 'Vancouver', country: 'Canada' },
+  'Boston Stadium':                 { stadium: 'Gillette Stadium', city: 'Boston (Foxborough)', country: 'USA' },
+  'Dallas Stadium':                 { stadium: 'AT&T Stadium', city: 'Dallas (Arlington)', country: 'USA' },
+  'Guadalajara Stadium':            { stadium: 'Estadio Akron', city: 'Guadalajara', country: 'Mexico' },
+  'Houston Stadium':                { stadium: 'NRG Stadium', city: 'Houston', country: 'USA' },
+  'Kansas City Stadium':            { stadium: 'Arrowhead Stadium', city: 'Kansas City', country: 'USA' },
+  'Los Angeles Stadium':            { stadium: 'SoFi Stadium', city: 'Los Angeles (Inglewood)', country: 'USA' },
+  'Mexico City Stadium':            { stadium: 'Estadio Azteca', city: 'Mexico City', country: 'Mexico' },
+  'Miami Stadium':                  { stadium: 'Hard Rock Stadium', city: 'Miami', country: 'USA' },
+  'Monterrey Stadium':              { stadium: 'Estadio BBVA', city: 'Monterrey', country: 'Mexico' },
+  'New York/New Jersey Stadium':    { stadium: 'MetLife Stadium', city: 'New York/New Jersey (East Rutherford)', country: 'USA' },
+  'Philadelphia Stadium':           { stadium: 'Lincoln Financial Field', city: 'Philadelphia', country: 'USA' },
+  'San Francisco Bay Area Stadium': { stadium: "Levi's Stadium", city: 'San Francisco Bay Area (Santa Clara)', country: 'USA' },
+  'Seattle Stadium':                { stadium: 'Lumen Field', city: 'Seattle', country: 'USA' },
+  'Toronto Stadium':                { stadium: 'BMO Field', city: 'Toronto', country: 'Canada' },
+};
+
+// Swedish broadcaster listing (svenskfotboll.se, May 2026) — mirror of add_broadcasters.mjs.
+// Knockout channels are unannounced; those matches get broadcaster: null.
+const SV = {
+  'Mexiko': 'Mexico', 'Sydafrika': 'South Africa', 'Sydkorea': 'Korea Republic',
+  'Tjeckien': 'Czechia', 'Kanada': 'Canada', 'Bosnien-Hercegovina': 'Bosnia and Herzegovina',
+  'Bosnien och Hercegovina': 'Bosnia and Herzegovina', 'USA': 'USA', 'Paraguay': 'Paraguay',
+  'Qatar': 'Qatar', 'Schweiz': 'Switzerland', 'Brasilien': 'Brazil', 'Marocko': 'Morocco',
+  'Haiti': 'Haiti', 'Skottland': 'Scotland', 'Australien': 'Australia', 'Turkiet': 'Türkiye',
+  'Tyskland': 'Germany', 'Curacao': 'Curaçao', 'Nederländerna': 'Netherlands', 'Japan': 'Japan',
+  'Sverige': 'Sweden', 'Tunisien': 'Tunisia', 'Spanien': 'Spain', 'Kap Verde': 'Cabo Verde',
+  'Belgien': 'Belgium', 'Egypten': 'Egypt', 'Elfbenskusten': "Côte d'Ivoire",
+  'Elfenbenskusten': "Côte d'Ivoire", 'Ecuador': 'Ecuador', 'Saudiarabien': 'Saudi Arabia',
+  'Uruguay': 'Uruguay', 'Iran': 'IR Iran', 'Nya Zeeland': 'New Zealand', 'Frankrike': 'France',
+  'Senegal': 'Senegal', 'Irak': 'Iraq', 'Norge': 'Norway', 'Argentina': 'Argentina',
+  'Algeriet': 'Algeria', 'Österrike': 'Austria', 'Jordanien': 'Jordan', 'Portugal': 'Portugal',
+  'DR Kongo': 'Congo DR', 'England': 'England', 'Kroatien': 'Croatia', 'Ghana': 'Ghana',
+  'Panama': 'Panama', 'Uzbekistan': 'Uzbekistan', 'Colombia': 'Colombia',
+};
+
+const LISTING = `
+Mexiko - Sydafrika | TV4
+Sydkorea - Tjeckien | TV4
+Kanada - Bosnien-Hercegovina | SVT1
+USA - Paraguay | TV4
+Qatar - Schweiz | TV4
+Brasilien - Marocko | SVT1
+Haiti - Skottland | SVT1
+Australien - Turkiet | TV4
+Tyskland - Curacao | TV4
+Nederländerna - Japan | TV4
+Sverige - Tunisien | SVT1
+Spanien - Kap Verde | SVT1
+Belgien - Egypten | SVT1/SVT2
+Elfbenskusten - Ecuador | TV4
+Saudiarabien - Uruguay | TV4
+Iran - Nya Zeeland | TV4
+Frankrike - Senegal | SVT1
+Irak - Norge | TV4
+Argentina - Algeriet | TV4
+Österrike - Jordanien | TV4
+Portugal - DR Kongo | TV4
+England - Kroatien | TV4
+Ghana - Panama | TV4
+Uzbekistan - Colombia | TV4
+Tjeckien - Sydafrika | TV4
+Schweiz - Bosnien och Hercegovina | TV4
+Kanada - Qatar | TV4
+Mexiko - Sydkorea | TV4
+USA - Australien | SVT2
+Skottland - Marocko | SVT1
+Brasilien - Haiti | TV4
+Turkiet - Paraguay | TV4
+Nederländerna - Sverige | TV4
+Tyskland - Elfbenskusten | TV4
+Ecuador - Curacao | TV4
+Tunisien - Japan | SVT1
+Spanien - Saudiarabien | TV4
+Belgien - Iran | TV4
+Uruguay - Kap Verde | TV4
+Nya Zeeland - Egypten | TV4
+Argentina - Österrike | SVT2/SVT1
+Frankrike - Irak | SVT1
+Norge - Senegal | SVT1
+Jordanien - Algeriet | TV4
+Portugal - Uzbekistan | SVT2/SVT1
+England - Ghana | SVT1
+Panama - Kroatien | TV4
+Colombia - DR Kongo | TV4
+Schweiz - Kanada | TV4
+Bosnien och Hercegovina - Qatar | TV4
+Marocko - Haiti | TV4
+Skottland - Brasilien | TV4
+Sydafrika - Sydkorea | SVT2
+Tjeckien - Mexiko | SVT1
+Curacao - Elfenbenskusten | SVT1
+Ecuador - Tyskland | SVT1
+Tunisien - Nederländerna | SVT2
+Japan - Sverige | SVT1
+Turkiet - USA | TV4
+Paraguay - Australien | TV4
+Norge - Frankrike | TV4
+Senegal - Irak | TV4
+Kap Verde - Saudiarabien | TV4
+Uruguay - Spanien | TV4
+Nya Zeeland - Belgien | TV4
+Egypten - Iran | TV4
+Panama - England | SVT1
+Kroatien - Ghana | SVT2
+DR Kongo - Uzbekistan | TV4
+Colombia - Portugal | TV4
+Algeriet - Österrike | TV4
+Jordanien - Argentina | TV4
+`.trim().split('\n');
+
+const channelByPair = new Map();
+for (const line of LISTING) {
+  const [teams, channel] = line.split('|').map(s => s.trim());
+  const [home, away] = teams.split(' - ').map(s => s.trim());
+  if (!(home in SV) || !(away in SV)) throw new Error(`Unknown Swedish team name in listing: ${line}`);
+  channelByPair.set(`${SV[home]}|${SV[away]}`, channel);
+}
+
+function transform(raw) {
+  const matches = raw.map(f => {
+    const v = VENUES[f.Location];
+    if (!v) throw new Error(`Unmapped venue: ${f.Location}`);
+    const dt = new Date(f.DateUtc.replace(' ', 'T'));
+    if (isNaN(dt)) throw new Error(`Bad DateUtc: ${f.DateUtc}`);
+    const broadcaster = f.MatchNumber <= 72
+      ? (channelByPair.get(`${f.HomeTeam}|${f.AwayTeam}`)
+         ?? channelByPair.get(`${f.AwayTeam}|${f.HomeTeam}`)
+         ?? null)
+      : null;
+    return {
+      matchNumber: f.MatchNumber,
+      dateUtc: dt.toISOString().replace('.000Z', 'Z'),
+      homeTeam: f.HomeTeam,
+      awayTeam: f.AwayTeam,
+      group: f.Group,
+      location: f.Location,
+      homeScore: f.HomeTeamScore,
+      awayScore: f.AwayTeamScore,
+      broadcaster,
+      stadium: v.stadium,
+      city: v.city,
+      country: v.country,
+    };
+  });
+  matches.sort((a, b) => a.dateUtc.localeCompare(b.dateUtc) || a.matchNumber - b.matchNumber);
+  return matches;
+}
+
+// Build a group table from its matches. Every team that appears is listed (even
+// before kickoff); only matches with both scores recorded count toward the stats.
+function buildTable(groupMatches) {
+  const table = new Map();
+  const row = name => {
+    if (!table.has(name)) {
+      table.set(name, { team: name, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDiff: 0, points: 0 });
+    }
+    return table.get(name);
+  };
+  for (const m of groupMatches) {
+    const h = row(m.homeTeam), a = row(m.awayTeam);
+    if (m.homeScore === null || m.awayScore === null) continue;
+    h.played++; a.played++;
+    h.goalsFor += m.homeScore; h.goalsAgainst += m.awayScore;
+    a.goalsFor += m.awayScore; a.goalsAgainst += m.homeScore;
+    if (m.homeScore > m.awayScore) { h.won++; a.lost++; h.points += 3; }
+    else if (m.homeScore < m.awayScore) { a.won++; h.lost++; a.points += 3; }
+    else { h.drawn++; a.drawn++; h.points++; a.points++; }
+  }
+  for (const t of table.values()) t.goalDiff = t.goalsFor - t.goalsAgainst;
+  return table;
+}
+
+// FIFA group order: points, then goal difference, then goals for. Teams still tied
+// on all three are split by head-to-head (a mini-table of only the matches between
+// them), then by team name as a deterministic last resort.
+function rankGroup(groupMatches) {
+  const teams = [...buildTable(groupMatches).values()];
+  const tiedOnOverall = (a, b) => a.points === b.points && a.goalDiff === b.goalDiff && a.goalsFor === b.goalsFor;
+  teams.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || a.team.localeCompare(b.team));
+  for (let i = 0; i < teams.length;) {
+    let j = i + 1;
+    while (j < teams.length && tiedOnOverall(teams[i], teams[j])) j++;
+    if (j - i > 1) {
+      const names = new Set(teams.slice(i, j).map(t => t.team));
+      const h2h = buildTable(groupMatches.filter(m => names.has(m.homeTeam) && names.has(m.awayTeam)));
+      const tied = teams.slice(i, j).sort((a, b) => {
+        const x = h2h.get(a.team), y = h2h.get(b.team);
+        return y.points - x.points || y.goalDiff - x.goalDiff || y.goalsFor - x.goalsFor || a.team.localeCompare(b.team);
+      });
+      teams.splice(i, tied.length, ...tied);
+    }
+    i = j;
+  }
+  return teams;
+}
+
+// One third-placed team per group, ranked best first by 1) points, 2) goal
+// difference, 3) goals scored. The eight best qualify; their group letters, sorted
+// alphabetically (e.g. "ABDEFGJK"), are the key FIFA uses to set the round-of-32 bracket.
+function bestThirds(matches) {
+  const groups = new Map();
+  for (const m of matches) {
+    if (!m.group) continue; // skip knockout fixtures
+    (groups.get(m.group) ?? groups.set(m.group, []).get(m.group)).push(m);
+  }
+  let thirds = [];
+  for (const [group, groupMatches] of groups) {
+    const third = rankGroup(groupMatches)[2];
+    if (third) thirds.push({ group, ...third });
+  }
+  thirds.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || a.group.localeCompare(b.group));
+  thirds = thirds.map((t, i) => ({ rank: i + 1, qualifies: i < 8, ...t }));
+  const qualifiedGroups = thirds
+    .filter(t => t.qualifies)
+    .map(t => t.group.replace('Group ', ''))
+    .sort()
+    .join('');
+  return { qualifiedGroups, thirds };
+}
+
+// tmp + rename = atomic on the same volume; nginx never sees a half-written file.
+// Returns false when the content is unchanged so callers can log a quiet no-op.
+function writeIfChanged(file, json, label) {
+  if (existsSync(file) && readFileSync(file, 'utf8') === json) {
+    console.log(`${new Date().toISOString()} no changes (${label})`);
+    return false;
+  }
+  writeFileSync(file + '.tmp', json);
+  renameSync(file + '.tmp', file);
+  console.log(`${new Date().toISOString()} updated ${file} — ${label}`);
+  return true;
+}
+
+async function refresh() {
+  const res = await fetch(FEED_URL, { headers: { 'User-Agent': 'wc2026-site-updater' }, signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new Error(`Feed responded HTTP ${res.status}`);
+  const raw = await res.json();
+  if (!Array.isArray(raw) || raw.length < 100) throw new Error(`Unexpected feed shape: ${Array.isArray(raw) ? raw.length + ' entries' : typeof raw}`);
+
+  const matches = transform(raw);
+  const played = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+  writeIfChanged(OUT_FILE, JSON.stringify(matches, null, 2), `${matches.length} matches, ${played} played`);
+
+  const thirds = bestThirds(matches);
+  writeIfChanged(THIRDS_FILE, JSON.stringify(thirds, null, 2), `best thirds: ${thirds.qualifiedGroups || '(none yet)'}`);
+}
+
+async function tick() {
+  try {
+    await refresh();
+  } catch (err) {
+    console.error(`${new Date().toISOString()} refresh failed (keeping previous data): ${err.message}`);
+  }
+}
+
+console.log(`wc2026 updater: ${FEED_URL} -> ${OUT_FILE} every ${INTERVAL_MS / 1000}s`);
+await tick();
+if (process.env.RUN_ONCE) process.exit(0);
+setInterval(tick, INTERVAL_MS);
