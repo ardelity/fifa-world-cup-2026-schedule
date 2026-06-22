@@ -9,7 +9,14 @@ const OUT_FILE = process.env.OUT_FILE || '/data/matches.json';
 // Ranked list of the third-placed teams (one per group), best first — written next
 // to matches.json so the site can show which "best thirds" currently qualify.
 const THIRDS_FILE = process.env.THIRDS_FILE || OUT_FILE.replace(/matches\.json$/, 'best-thirds.json');
+// Round-of-32 bracket projected from the current standings.
+const BRACKET_FILE = process.env.BRACKET_FILE || OUT_FILE.replace(/matches\.json$/, 'bracket.json');
 const INTERVAL_MS = (parseInt(process.env.INTERVAL_SECONDS, 10) || 900) * 1000;
+
+// FIFA's Annex C table: for each of the 495 combinations of the eight qualifying
+// third-placed groups (key = the 8 group letters sorted), which group's third goes
+// to each round-of-32 match. Parsed from the published regulations. { "<combo>": { "<matchNo>": "<group>" } }
+const THIRD_ALLOCATIONS = JSON.parse(readFileSync(new URL('./third-place-allocations.json', import.meta.url), 'utf8'));
 
 // FIFA's sanitized venue names -> real stadium + host city (mirror of add_locations.mjs)
 const VENUES = {
@@ -211,18 +218,25 @@ function rankGroup(groupMatches) {
   return teams;
 }
 
-// One third-placed team per group, ranked best first by 1) points, 2) goal
-// difference, 3) goals scored. The eight best qualify; their group letters, sorted
-// alphabetically (e.g. "ABDEFGJK"), are the key FIFA uses to set the round-of-32 bracket.
-function bestThirds(matches) {
+// Ranked standings for every group, keyed by its full name ("Group A".."Group L").
+function standingsByGroup(matches) {
   const groups = new Map();
   for (const m of matches) {
     if (!m.group) continue; // skip knockout fixtures
     (groups.get(m.group) ?? groups.set(m.group, []).get(m.group)).push(m);
   }
+  const standings = new Map();
+  for (const [group, groupMatches] of groups) standings.set(group, rankGroup(groupMatches));
+  return standings;
+}
+
+// One third-placed team per group, ranked best first by 1) points, 2) goal
+// difference, 3) goals scored. The eight best qualify; their group letters, sorted
+// alphabetically (e.g. "ABDEFGJK"), are the key FIFA uses to set the round-of-32 bracket.
+function bestThirds(standings) {
   let thirds = [];
-  for (const [group, groupMatches] of groups) {
-    const third = rankGroup(groupMatches)[2];
+  for (const [group, ranked] of standings) {
+    const third = ranked[2];
     if (third) thirds.push({ group, ...third });
   }
   thirds.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || a.group.localeCompare(b.group));
@@ -233,6 +247,39 @@ function bestThirds(matches) {
     .sort()
     .join('');
   return { qualifiedGroups, thirds };
+}
+
+// Project the round of 32 (matches 73–88) from the current standings. Group winners
+// and runners-up sit in their fixed feed slots (1A, 2C, …); each third-place slot
+// (3ABCDF, …) is filled via the Annex C allocation for the qualifying combination.
+function buildBracket(matches, standings, qualifiedGroups) {
+  const alloc = THIRD_ALLOCATIONS[qualifiedGroups]; // matchNo -> group letter (undefined until 8 thirds settle)
+  const teamAt = (group, idx) => standings.get(`Group ${group}`)?.[idx]?.team ?? null;
+  const resolve = (slot, matchNumber) => {
+    let m;
+    if ((m = slot.match(/^([12])([A-L])$/)))                 // 1A / 2C — group winner / runner-up
+      return { slot, position: +m[1], group: m[2], team: teamAt(m[2], +m[1] - 1) };
+    if ((m = slot.match(/^3([A-L]{2,})$/))) {                // 3ABCDF — one of the qualifying thirds
+      const group = alloc?.[matchNumber] ?? null;
+      return { slot, position: 3, eligibleGroups: m[1], group, team: group ? teamAt(group, 2) : null };
+    }
+    // The feed replaces a placeholder with the real name once that slot is officially
+    // settled; treat any non-placeholder string as the authoritative resolved team.
+    return { slot, team: slot, resolved: true };
+  };
+  const roundOf32 = matches
+    .filter(m => m.matchNumber >= 73 && m.matchNumber <= 88)
+    .sort((a, b) => a.matchNumber - b.matchNumber)
+    .map(m => ({
+      matchNumber: m.matchNumber,
+      dateUtc: m.dateUtc,
+      stadium: m.stadium,
+      city: m.city,
+      country: m.country,
+      home: resolve(m.homeTeam, m.matchNumber),
+      away: resolve(m.awayTeam, m.matchNumber),
+    }));
+  return { combination: qualifiedGroups, roundOf32 };
 }
 
 // tmp + rename = atomic on the same volume; nginx never sees a half-written file.
@@ -258,8 +305,12 @@ async function refresh() {
   const played = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
   writeIfChanged(OUT_FILE, JSON.stringify(matches, null, 2), `${matches.length} matches, ${played} played`);
 
-  const thirds = bestThirds(matches);
+  const standings = standingsByGroup(matches);
+  const thirds = bestThirds(standings);
   writeIfChanged(THIRDS_FILE, JSON.stringify(thirds, null, 2), `best thirds: ${thirds.qualifiedGroups || '(none yet)'}`);
+
+  const bracket = buildBracket(matches, standings, thirds.qualifiedGroups);
+  writeIfChanged(BRACKET_FILE, JSON.stringify(bracket, null, 2), `round of 32 (thirds: ${thirds.qualifiedGroups || 'pending'})`);
 }
 
 async function tick() {
