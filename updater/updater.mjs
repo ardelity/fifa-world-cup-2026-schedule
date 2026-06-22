@@ -18,6 +18,19 @@ const INTERVAL_MS = (parseInt(process.env.INTERVAL_SECONDS, 10) || 900) * 1000;
 // to each round-of-32 match. Parsed from the published regulations. { "<combo>": { "<matchNo>": "<group>" } }
 const THIRD_ALLOCATIONS = JSON.parse(readFileSync(new URL('./third-place-allocations.json', import.meta.url), 'utf8'));
 
+// Fixed knockout bracket past the round of 32: which earlier matches feed each
+// match (matches 89–104), as [home, away] where W=winner, L=loser. From the
+// published tournament bracket. Round-of-32 (73–88) slots come from the group stage.
+const PROGRESSION = {
+  89: ['W74', 'W77'], 90: ['W73', 'W75'], 91: ['W76', 'W78'], 92: ['W79', 'W80'],
+  93: ['W83', 'W84'], 94: ['W81', 'W82'], 95: ['W86', 'W88'], 96: ['W85', 'W87'],
+  97: ['W89', 'W90'], 98: ['W93', 'W94'], 99: ['W91', 'W92'], 100: ['W95', 'W96'],
+  101: ['W97', 'W98'], 102: ['W99', 'W100'], 103: ['L101', 'L102'], 104: ['W101', 'W102'],
+};
+const roundName = (n) =>
+  n <= 88 ? 'Round of 32' : n <= 96 ? 'Round of 16' : n <= 100 ? 'Quarter-final'
+  : n <= 102 ? 'Semi-final' : n === 103 ? 'Match for third place' : 'Final';
+
 // FIFA's sanitized venue names -> real stadium + host city (mirror of add_locations.mjs)
 const VENUES = {
   'Atlanta Stadium':                { stadium: 'Mercedes-Benz Stadium', city: 'Atlanta', country: 'USA' },
@@ -249,13 +262,15 @@ function bestThirds(standings) {
   return { qualifiedGroups, thirds };
 }
 
-// Project the round of 32 (matches 73–88) from the current standings. Group winners
-// and runners-up sit in their fixed feed slots (1A, 2C, …); each third-place slot
-// (3ABCDF, …) is filled via the Annex C allocation for the qualifying combination.
+// Project the full knockout bracket (matches 73–104) from the current standings.
+// Round of 32: group winners/runners-up sit in their fixed feed slots (1A, 2C, …)
+// and each third-place slot (3ABCDF, …) is filled via the Annex C allocation for
+// the qualifying combination. Later rounds carry the fixed Winner/Loser-of-match
+// linkage until the feed resolves a slot to a real team.
 function buildBracket(matches, standings, qualifiedGroups) {
   const alloc = THIRD_ALLOCATIONS[qualifiedGroups]; // matchNo -> group letter (undefined until 8 thirds settle)
   const teamAt = (group, idx) => standings.get(`Group ${group}`)?.[idx]?.team ?? null;
-  const resolve = (slot, matchNumber) => {
+  const resolve = (slot, matchNumber, side) => {
     let m;
     if ((m = slot.match(/^([12])([A-L])$/)))                 // 1A / 2C — group winner / runner-up
       return { slot, position: +m[1], group: m[2], team: teamAt(m[2], +m[1] - 1) };
@@ -263,23 +278,29 @@ function buildBracket(matches, standings, qualifiedGroups) {
       const group = alloc?.[matchNumber] ?? null;
       return { slot, position: 3, eligibleGroups: m[1], group, team: group ? teamAt(group, 2) : null };
     }
+    const prog = PROGRESSION[matchNumber];                   // later rounds: winner/loser of an earlier match
+    if (prog && /to be announced/i.test(slot)) {
+      const ref = prog[side];
+      return { sourceType: ref[0] === 'W' ? 'winner' : 'loser', sourceMatch: +ref.slice(1), team: null };
+    }
     // The feed replaces a placeholder with the real name once that slot is officially
     // settled; treat any non-placeholder string as the authoritative resolved team.
     return { slot, team: slot, resolved: true };
   };
-  const roundOf32 = matches
-    .filter(m => m.matchNumber >= 73 && m.matchNumber <= 88)
+  const bracket = matches
+    .filter(m => m.matchNumber >= 73)
     .sort((a, b) => a.matchNumber - b.matchNumber)
     .map(m => ({
       matchNumber: m.matchNumber,
+      round: roundName(m.matchNumber),
       dateUtc: m.dateUtc,
       stadium: m.stadium,
       city: m.city,
       country: m.country,
-      home: resolve(m.homeTeam, m.matchNumber),
-      away: resolve(m.awayTeam, m.matchNumber),
+      home: resolve(m.homeTeam, m.matchNumber, 0),
+      away: resolve(m.awayTeam, m.matchNumber, 1),
     }));
-  return { combination: qualifiedGroups, roundOf32 };
+  return { combination: qualifiedGroups, bracket };
 }
 
 // tmp + rename = atomic on the same volume; nginx never sees a half-written file.
@@ -310,7 +331,7 @@ async function refresh() {
   writeIfChanged(THIRDS_FILE, JSON.stringify(thirds, null, 2), `best thirds: ${thirds.qualifiedGroups || '(none yet)'}`);
 
   const bracket = buildBracket(matches, standings, thirds.qualifiedGroups);
-  writeIfChanged(BRACKET_FILE, JSON.stringify(bracket, null, 2), `round of 32 (thirds: ${thirds.qualifiedGroups || 'pending'})`);
+  writeIfChanged(BRACKET_FILE, JSON.stringify(bracket, null, 2), `knockout bracket (${bracket.bracket.length} matches, thirds: ${thirds.qualifiedGroups || 'pending'})`);
 }
 
 async function tick() {
