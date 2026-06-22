@@ -34,8 +34,8 @@
     "awayTeam": "Bosnia and Herzegovina",
     "group": "Group B",
     "location": "Toronto Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 1,
     "broadcaster": "SVT1",
     "stadium": "BMO Field",
     "city": "Toronto",
@@ -700,20 +700,6 @@
     "country": "USA"
   },
   {
-    "matchNumber": 50,
-    "dateUtc": "2026-06-24T22:00:00Z",
-    "homeTeam": "Morocco",
-    "awayTeam": "Haiti",
-    "group": "Group C",
-    "location": "Atlanta Stadium",
-    "homeScore": null,
-    "awayScore": null,
-    "broadcaster": "TV4",
-    "stadium": "Mercedes-Benz Stadium",
-    "city": "Atlanta",
-    "country": "USA"
-  },
-  {
     "matchNumber": 49,
     "dateUtc": "2026-06-24T22:00:00Z",
     "homeTeam": "Scotland",
@@ -725,6 +711,20 @@
     "broadcaster": "TV4",
     "stadium": "Hard Rock Stadium",
     "city": "Miami",
+    "country": "USA"
+  },
+  {
+    "matchNumber": 50,
+    "dateUtc": "2026-06-24T22:00:00Z",
+    "homeTeam": "Morocco",
+    "awayTeam": "Haiti",
+    "group": "Group C",
+    "location": "Atlanta Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Mercedes-Benz Stadium",
+    "city": "Atlanta",
     "country": "USA"
   },
   {
@@ -868,20 +868,6 @@
     "country": "Canada"
   },
   {
-    "matchNumber": 66,
-    "dateUtc": "2026-06-27T00:00:00Z",
-    "homeTeam": "Uruguay",
-    "awayTeam": "Spain",
-    "group": "Group H",
-    "location": "Guadalajara Stadium",
-    "homeScore": null,
-    "awayScore": null,
-    "broadcaster": "TV4",
-    "stadium": "Estadio Akron",
-    "city": "Guadalajara",
-    "country": "Mexico"
-  },
-  {
     "matchNumber": 65,
     "dateUtc": "2026-06-27T00:00:00Z",
     "homeTeam": "Cabo Verde",
@@ -894,6 +880,20 @@
     "stadium": "NRG Stadium",
     "city": "Houston",
     "country": "USA"
+  },
+  {
+    "matchNumber": 66,
+    "dateUtc": "2026-06-27T00:00:00Z",
+    "homeTeam": "Uruguay",
+    "awayTeam": "Spain",
+    "group": "Group H",
+    "location": "Guadalajara Stadium",
+    "homeScore": null,
+    "awayScore": null,
+    "broadcaster": "TV4",
+    "stadium": "Estadio Akron",
+    "city": "Guadalajara",
+    "country": "Mexico"
   },
   {
     "matchNumber": 63,

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0e1420">
 <title>FIFA World Cup 2026 — All Matches</title>
 <style>
   :root {
@@ -11,7 +12,7 @@
     --card-played: #131b2a;
     --text: #e8edf5;
     --muted: #8b97ab;
-    --accent: #4cc38a;
+    --accent: #5aa7e8;
     --line: #243149;
     --hl-border: #4f8fbf;
     --hl-bg: #15304a;
@@ -28,9 +29,32 @@
   header {
     padding: 28px 16px 12px;
     text-align: center;
+    position: relative;
   }
   header h1 { margin: 0 0 4px; font-size: 1.6rem; }
   header p { margin: 0; color: var(--muted); font-size: .9rem; }
+  #last-updated { font-size: .72rem; margin-top: 3px; }
+
+  /* Language selector (flag buttons, top right) */
+  #lang-switch {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 6px;
+  }
+  #lang-switch button {
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    padding: 2px;
+    line-height: 0;
+    cursor: pointer;
+    opacity: .55;
+  }
+  #lang-switch button:hover { opacity: .85; }
+  #lang-switch button.active { border-color: var(--accent); opacity: 1; }
+  #lang-switch img { width: 28px; height: 21px; border-radius: 3px; display: block; }
   main {
     max-width: 760px;
     margin: 0 auto;
@@ -41,7 +65,7 @@
   #groups, #venues {
     max-width: 1100px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
     gap: 14px;
     align-items: start;
   }
@@ -90,15 +114,16 @@
   .group-card td.pts { font-weight: 700; }
   .group-card tbody tr:nth-child(2) td { border-bottom: 1px dashed var(--line); }
   .group-card { margin-bottom: 0; }
-  .gm-list { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+  .gm-list { margin-top: 14px; border-top: 1px solid var(--line); padding: 6px 4px 2px; }
   .gm {
     display: grid;
     grid-template-columns: 110px 1fr auto 42px;
     align-items: center;
     gap: 8px;
-    padding: 3px 0;
+    padding: 10px 8px;
     font-size: .8rem;
   }
+  .gm + .gm { border-top: 1px dashed var(--line); }
   .gm-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .gm-teams { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gm-res { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
@@ -109,8 +134,7 @@
     grid-column: 1 / -1;
     color: var(--muted);
     font-size: .68rem;
-    margin-top: -2px;
-    padding-bottom: 2px;
+    margin-top: -4px;
   }
   @media (max-width: 480px) {
     .gm { grid-template-columns: 86px 1fr auto 40px; font-size: .72rem; }
@@ -138,10 +162,28 @@
     display: block;
     margin: 4px 0;
   }
+  /* Mobile: filters collapse behind a toggle button */
+  #btn-filters {
+    display: none;
+    width: 100%;
+    margin-top: 8px;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+  }
+  #btn-filters.on { border-color: var(--accent); color: var(--accent); }
   @media (max-width: 900px) {
-    .layout { flex-direction: column; }
-    #teams-bar { width: 100%; padding-bottom: 0; }
-    #teams-bar .team-chip { display: inline-block; margin: 3px; }
+    /* align-items must stretch again or .content sizes to max-content and overflows */
+    .layout { flex-direction: column; align-items: stretch; gap: 10px; }
+    #btn-filters { display: block; }
+    #teams-bar { display: none; width: 100%; padding: 0; }
+    body.filters-open #teams-bar { display: block; }
+    #teams-bar .team-chip { display: inline-block; margin: 3px; padding: 5px 12px; }
   }
   .team-chip {
     display: inline-block;
@@ -156,8 +198,8 @@
   }
   .team-chip:hover { border-color: var(--accent); }
   .filter-toggle { color: var(--muted); margin-bottom: 8px; }
-  .filter-toggle.on { border-color: var(--accent); color: var(--accent); background: #16271f; }
-  .venue-chip.sel { border-color: var(--accent); color: var(--accent); background: #16271f; }
+  .filter-toggle.on { border-color: var(--accent); color: var(--accent); background: #15273a; }
+  .venue-chip.sel { border-color: var(--accent); color: var(--accent); background: #15273a; }
   .team-chip.sel { background: var(--hl-bg2); font-weight: 600; } /* border + text color set per team */
   .team.sel { font-weight: 700; }
   .match.sel, .match.sel.played { border-color: var(--hl-border); background: var(--hl-bg); }
@@ -214,9 +256,15 @@
     font-size: .78rem;
     margin-top: 2px;
   }
+  .meta-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .meta-bc .bc-logo { margin-right: 0; margin-left: 3px; }
+  .meta-loc { margin-top: 0; font-size: .72rem; }
   .stage-tag {
     color: var(--accent);
   }
+  .group-link { cursor: pointer; }
+  .group-link:hover { text-decoration: underline; }
+  .group-card { scroll-margin-top: 10px; }
   .bc-logo {
     height: 15px;
     vertical-align: -3px;
@@ -224,13 +272,23 @@
   }
   .cal-match .bc-logo { height: 10px; vertical-align: -1px; float: right; margin: 1px 0 0 3px; }
   @media (max-width: 560px) {
-    .match { grid-template-columns: 52px 1fr auto 1fr; padding: 8px 10px; gap: 6px; }
+    header { padding: 18px 12px 8px; }
+    header h1 { font-size: 1.3rem; }
+    header p { font-size: .8rem; }
+    nav button { padding: 6px 12px; font-size: .85rem; }
+    #lang-switch { top: 8px; right: 8px; }
+    #lang-switch img { width: 24px; height: 18px; }
+    .match { grid-template-columns: 48px 1fr auto 1fr; padding: 8px 10px; gap: 6px; }
     .team { font-size: .88rem; }
+    .score { padding: 2px 7px; }
+    .meta { font-size: .7rem; }
+    .day { font-size: .9rem; margin: 20px 2px 8px; }
   }
 
   /* View + timezone toggles */
   nav {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
     gap: 8px;
@@ -249,7 +307,7 @@
   nav button.active {
     color: var(--text);
     border-color: var(--accent);
-    background: #16271f;
+    background: #15273a;
   }
   nav .sep {
     width: 1px;
@@ -261,12 +319,37 @@
 
   /* Calendar view */
   #calendar { max-width: 1100px; }
+  /* Sticky navigation: jump between months / today while scrolling */
+  #cal-nav {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 4px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  #cal-nav button {
+    background: var(--card);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 14px;
+    font: inherit;
+    font-size: .85rem;
+    cursor: pointer;
+  }
+  #cal-nav button:hover { border-color: var(--accent); color: var(--text); }
   .month-title {
     margin: 32px 4px 10px;
     font-size: 1.15rem;
     font-weight: 600;
     color: var(--accent);
+    scroll-margin-top: 58px; /* clear the sticky #cal-nav when jumping */
   }
+  .cal-cell.today { border-color: var(--accent); }
   .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -305,32 +388,50 @@
     margin-bottom: 3px;
     line-height: 1.3;
   }
-  .cal-match.bc-tv4 { border-color: #e0001c; }
+  .cal-match.bc-tv4 { border-color: #f45b6c; }
   .cal-match.bc-svt { border-color: #3fa34d; }
   .cal-match .cm-time { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
   .cal-match .cm-score { font-weight: 700; }
   .cal-match .cm-teams { display: block; }
   .cal-match .cm-teams.placeholder { color: var(--muted); font-style: italic; }
+  .cal-match .cm-short { display: none; }
+  /* Mobile: the whole week fits the screen — compact 3-letter team codes, no sideways scrolling */
   @media (max-width: 700px) {
     .cal-grid { gap: 2px; }
-    .cal-cell { min-height: 60px; padding: 3px; font-size: .62rem; }
+    .cal-cell { min-height: 54px; padding: 3px 2px; font-size: .6rem; border-radius: 5px; }
+    .cal-daynum { font-size: .68rem; margin-bottom: 2px; }
+    .cal-weekday { font-size: .6rem; letter-spacing: 0; }
+    .cal-match { padding: 2px 3px; margin-bottom: 2px; }
+    .cal-match .bc-logo { display: none; }
+    .cal-match .cm-time { display: block; font-size: .56rem; }
+    .cal-match .cm-full { display: none; }
+    .cal-match .cm-short { display: block; font-size: .6rem; line-height: 1.25; }
+    .month-title { margin: 20px 4px 8px; scroll-margin-top: 48px; }
+    #cal-nav { gap: 6px; padding: 8px 2px 6px; }
+    #cal-nav button { padding: 4px 10px; font-size: .75rem; }
   }
 </style>
 </head>
 <body>
 <header>
+  <div id="lang-switch">
+    <button id="btn-lang-en" title="English"><img src="img/gb.svg" alt="English"></button>
+    <button id="btn-lang-sv" title="Svenska"><img src="img/se.svg" alt="Svenska"></button>
+  </div>
   <h1>FIFA World Cup 2026</h1>
-  <p id="subtitle">All 104 matches, sorted by kick-off time.</p>
+  <p id="subtitle">Alla 104 matcher, sorterade efter avsparkstid.</p>
+  <p id="last-updated" hidden></p>
   <nav>
-    <button id="btn-list">List</button>
-    <button id="btn-calendar">Calendar</button>
-    <button id="btn-groups" class="active">Groups</button>
-    <button id="btn-venues">Venues</button>
+    <button id="btn-list">Lista</button>
+    <button id="btn-calendar">Kalender</button>
+    <button id="btn-groups" class="active">Grupper</button>
+    <button id="btn-venues">Arenor</button>
     <div class="sep"></div>
-    <button id="btn-tz" class="tz">Show Stockholm time</button>
+    <button id="btn-tz" class="tz">Visa UTC</button>
   </nav>
 </header>
 <div class="layout">
+  <button id="btn-filters">Filter &amp; lag</button>
   <aside id="teams-bar"></aside>
   <div class="content">
     <main id="list" hidden></main>
@@ -340,10 +441,94 @@
   </div>
 </div>
 <script>
-const MATCHES = /*__MATCHES__*/[];
+let MATCHES = /*__MATCHES__*/[];
 
 const TZ_LOCAL = 'Europe/Stockholm';
-let tz = 'UTC';
+let tz = TZ_LOCAL;
+
+// ---- Language ----
+let lang = 'sv';
+try { lang = localStorage.getItem('lang') || 'sv'; } catch {}
+const I18N = {
+  en: {
+    locale: 'en-GB',
+    nav: { list: 'List', calendar: 'Calendar', groups: 'Groups', venues: 'Venues' },
+    showLocal: 'Show Stockholm time', showUtc: 'Show UTC',
+    filters: 'Filters & teams', hideFilters: 'Hide filters & teams',
+    active: n => ` · ${n} active`,
+    hostCountry: 'Host country', hostCountryTip: 'Click a country to show only matches played there',
+    venuesHeading: 'Venues', venuesTip: 'Click a venue to show only its matches',
+    teamsHeading: 'Teams', teamsTip: 'Click a team to highlight it in all views',
+    onlySelected: 'Only selected', onlySelectedTip: 'Show only matches involving the selected teams',
+    groupWinner: g => `Group ${g} winner`,
+    runnerUp: g => `Group ${g} runner-up`,
+    thirdPlace: l => `3rd place (${l})`,
+    tbd: 'TBD',
+    stages: ['Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Third place', 'Final'],
+    thTeam: 'Team', th: ['P', 'W', 'D', 'L', '+/-', 'Pts'],
+    match: 'Match',
+    today: 'Today',
+    weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    subtitle: tzDesc => `All 104 matches, sorted by kick-off time. Times are ${tzDesc}.`,
+    localTz: abbr => `Europe/Stockholm (${abbr})`,
+    lastUpdated: 'Results updated'
+  },
+  sv: {
+    locale: 'sv-SE',
+    nav: { list: 'Lista', calendar: 'Kalender', groups: 'Grupper', venues: 'Arenor' },
+    showLocal: 'Visa svensk tid', showUtc: 'Visa UTC',
+    filters: 'Filter & lag', hideFilters: 'Dölj filter & lag',
+    active: n => ` · ${n} aktiva`,
+    hostCountry: 'Värdland', hostCountryTip: 'Klicka på ett land för att bara visa matcher som spelas där',
+    venuesHeading: 'Arenor', venuesTip: 'Klicka på en arena för att bara visa dess matcher',
+    teamsHeading: 'Lag', teamsTip: 'Klicka på ett lag för att markera det i alla vyer',
+    onlySelected: 'Endast valda', onlySelectedTip: 'Visa bara matcher med de valda lagen',
+    groupWinner: g => `Vinnare grupp ${g}`,
+    runnerUp: g => `Tvåa grupp ${g}`,
+    thirdPlace: l => `Trea (${l})`,
+    tbd: 'TBD',
+    stages: ['Sextondelsfinal', 'Åttondelsfinal', 'Kvartsfinal', 'Semifinal', 'Bronsmatch', 'Final'],
+    thTeam: 'Lag', th: ['S', 'V', 'O', 'F', '+/-', 'P'],
+    match: 'Match',
+    today: 'Idag',
+    weekdays: ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'],
+    subtitle: tzDesc => `Alla 104 matcher, sorterade efter avsparkstid. Tiderna visas i ${tzDesc}.`,
+    localTz: abbr => `svensk tid (${abbr})`,
+    lastUpdated: 'Resultaten uppdaterade'
+  }
+};
+let L = I18N[lang] ?? I18N.sv;
+
+// Swedish team/country names (only those that differ from the English source data)
+const TEAM_SV = {
+  'Algeria': 'Algeriet', 'Australia': 'Australien', 'Austria': 'Österrike', 'Belgium': 'Belgien',
+  'Bosnia and Herzegovina': 'Bosnien-Hercegovina', 'Brazil': 'Brasilien', 'Cabo Verde': 'Kap Verde',
+  'Canada': 'Kanada', 'Congo DR': 'DR Kongo', 'Croatia': 'Kroatien', 'Czechia': 'Tjeckien',
+  "Côte d'Ivoire": 'Elfenbenskusten', 'Egypt': 'Egypten', 'France': 'Frankrike', 'Germany': 'Tyskland',
+  'IR Iran': 'Iran', 'Iraq': 'Irak', 'Jordan': 'Jordanien', 'Korea Republic': 'Sydkorea',
+  'Mexico': 'Mexiko', 'Morocco': 'Marocko', 'Netherlands': 'Nederländerna', 'New Zealand': 'Nya Zeeland',
+  'Norway': 'Norge', 'Saudi Arabia': 'Saudiarabien', 'Scotland': 'Skottland', 'South Africa': 'Sydafrika',
+  'Spain': 'Spanien', 'Sweden': 'Sverige', 'Switzerland': 'Schweiz', 'Tunisia': 'Tunisien',
+  'Türkiye': 'Turkiet'
+};
+// FIFA three-letter codes — used in the compact mobile calendar
+const TEAM_CODE = {
+  'Algeria': 'ALG', 'Argentina': 'ARG', 'Australia': 'AUS', 'Austria': 'AUT', 'Belgium': 'BEL',
+  'Bosnia and Herzegovina': 'BIH', 'Brazil': 'BRA', 'Cabo Verde': 'CPV', 'Canada': 'CAN',
+  'Colombia': 'COL', 'Congo DR': 'COD', 'Croatia': 'CRO', 'Curaçao': 'CUW', 'Czechia': 'CZE',
+  "Côte d'Ivoire": 'CIV', 'Ecuador': 'ECU', 'Egypt': 'EGY', 'England': 'ENG', 'France': 'FRA',
+  'Germany': 'GER', 'Ghana': 'GHA', 'Haiti': 'HAI', 'IR Iran': 'IRN', 'Iraq': 'IRQ',
+  'Japan': 'JPN', 'Jordan': 'JOR', 'Korea Republic': 'KOR', 'Mexico': 'MEX', 'Morocco': 'MAR',
+  'Netherlands': 'NED', 'New Zealand': 'NZL', 'Norway': 'NOR', 'Panama': 'PAN', 'Paraguay': 'PAR',
+  'Portugal': 'POR', 'Qatar': 'QAT', 'Saudi Arabia': 'KSA', 'Scotland': 'SCO', 'Senegal': 'SEN',
+  'South Africa': 'RSA', 'Spain': 'ESP', 'Sweden': 'SWE', 'Switzerland': 'SUI', 'Tunisia': 'TUN',
+  'Türkiye': 'TUR', 'Uruguay': 'URU', 'USA': 'USA', 'Uzbekistan': 'UZB'
+};
+// Display name in the active language; selection state always keys on the English source name
+const disp = name => lang === 'sv' ? (TEAM_SV[name] ?? name) : name;
+const dispGroup = g => lang === 'sv' ? g.replace('Group', 'Grupp') : g;
+// sv-SE formats weekday/month names in lowercase — capitalize for headings
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 // Per-team highlight colors — warm/pastel tones that read well on the dark navy background
 const PALETTE = ['#f2a35c', '#e07bea', '#6fd98f', '#f4838f', '#c4a7ff', '#ffd166', '#5ee0c2', '#cde06c'];
 const teamColors = new Map(); // team -> color; membership in this map = selected
@@ -358,6 +543,28 @@ const matchVisible = m =>
   && (selectedCountries.size === 0 || selectedCountries.has(m.country))
   && (selectedVenues.size === 0 || selectedVenues.has(m.location));
 
+// Filter selections persist across sessions (same localStorage approach as the language)
+function saveFilters() {
+  try {
+    localStorage.setItem('filters', JSON.stringify({
+      teams: [...teamColors],
+      only: filterOnly,
+      venues: [...selectedVenues],
+      countries: [...selectedCountries],
+    }));
+  } catch {}
+}
+(function loadFilters() {
+  try {
+    const f = JSON.parse(localStorage.getItem('filters'));
+    if (!f) return;
+    for (const [team, color] of f.teams ?? []) teamColors.set(team, color);
+    filterOnly = !!f.only;
+    for (const v of f.venues ?? []) selectedVenues.add(v);
+    for (const c of f.countries ?? []) selectedCountries.add(c);
+  } catch {}
+})();
+
 function toggleTeam(team) {
   if (isSel(team)) { teamColors.delete(team); return; }
   const used = new Set(teamColors.values());
@@ -365,16 +572,16 @@ function toggleTeam(team) {
 }
 
 // Team name, colored if selected
-const teamSpan = name => isSel(name) ? `<span style="color:${colorOf(name)}">${name}</span>` : name;
+const teamSpan = name => isSel(name) ? `<span style="color:${colorOf(name)}">${disp(name)}</span>` : disp(name);
 
 function stageOf(n) {
   if (n <= 72) return null;            // group stage: show the group instead
-  if (n <= 88) return 'Round of 32';
-  if (n <= 96) return 'Round of 16';
-  if (n <= 100) return 'Quarter-final';
-  if (n <= 102) return 'Semi-final';
-  if (n === 103) return 'Third place';
-  return 'Final';
+  if (n <= 88) return L.stages[0];
+  if (n <= 96) return L.stages[1];
+  if (n <= 100) return L.stages[2];
+  if (n <= 102) return L.stages[3];
+  if (n === 103) return L.stages[4];
+  return L.stages[5];
 }
 
 function bcBadge(match) {
@@ -386,11 +593,11 @@ function bcBadge(match) {
 
 function prettyTeam(name) {
   let m;
-  if ((m = /^1([A-L])$/.exec(name))) return { text: `Group ${m[1]} winner`, ph: true };
-  if ((m = /^2([A-L])$/.exec(name))) return { text: `Group ${m[1]} runner-up`, ph: true };
-  if ((m = /^3([A-L]+)$/.exec(name))) return { text: `3rd place (${m[1].split('').join('/')})`, ph: true };
-  if (name === 'To be announced') return { text: 'TBD', ph: true };
-  return { text: name, ph: false };
+  if ((m = /^1([A-L])$/.exec(name))) return { text: L.groupWinner(m[1]), ph: true };
+  if ((m = /^2([A-L])$/.exec(name))) return { text: L.runnerUp(m[1]), ph: true };
+  if ((m = /^3([A-L]+)$/.exec(name))) return { text: L.thirdPlace(m[1].split('').join('/')), ph: true };
+  if (name === 'To be announced') return { text: L.tbd, ph: true };
+  return { text: disp(name), ph: false };
 }
 
 // Date + time of a match in the active timezone
@@ -415,14 +622,14 @@ const calendar = document.getElementById('calendar');
 
 function renderList() {
   list.innerHTML = '';
-  const fmtDay = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz });
+  const fmtDay = new Intl.DateTimeFormat(L.locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz });
   const abbr = tzAbbr();
   let currentDay = '';
 
   for (const match of MATCHES) {
     if (!matchVisible(match)) continue;
     const dt = new Date(match.dateUtc);
-    const day = fmtDay.format(dt);
+    const day = cap(fmtDay.format(dt));
     if (day !== currentDay) {
       currentDay = day;
       const h = document.createElement('div');
@@ -435,8 +642,9 @@ function renderList() {
     const away = prettyTeam(match.awayTeam);
     const played = match.homeScore !== null && match.awayScore !== null;
     const stage = stageOf(match.matchNumber);
-    const metaParts = [stage ? `<span class="stage-tag">${stage}</span>` : `<span class="stage-tag">${match.group}</span>`, `${match.stadium}, ${match.city}, ${match.country}`, `Match ${match.matchNumber}`];
-    if (match.broadcaster) metaParts.push(bcBadge(match));
+    const metaParts = [`${L.match} ${match.matchNumber}`, stage
+      ? `<span class="stage-tag">${stage}</span>`
+      : `<span class="stage-tag group-link" data-group="${match.group}">${dispGroup(match.group)}</span>`];
 
     const card = document.createElement('div');
     card.className = 'match' + (played ? ' played' : '')
@@ -446,7 +654,8 @@ function renderList() {
       <div class="team home${home.ph ? ' placeholder' : ''}${isSel(match.homeTeam) ? ' sel' : ''}">${isSel(match.homeTeam) ? teamSpan(match.homeTeam) : home.text}</div>
       <div class="score${played ? '' : ' vs'}">${played ? match.homeScore + ' – ' + match.awayScore : 'vs'}</div>
       <div class="team away${away.ph ? ' placeholder' : ''}${isSel(match.awayTeam) ? ' sel' : ''}">${isSel(match.awayTeam) ? teamSpan(match.awayTeam) : away.text}</div>
-      <div class="meta">${metaParts.join(' · ')}</div>`;
+      <div class="meta meta-row"><span>${metaParts.join(' · ')}</span><span class="meta-bc">${bcBadge(match)}</span></div>
+      <div class="meta meta-loc">${match.stadium}, ${match.city}, ${disp(match.country)}</div>`;
     list.appendChild(card);
   }
 }
@@ -462,8 +671,14 @@ function renderCalendar() {
     byDate.get(date).push({ match, time });
   }
 
-  const fmtMonth = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const fmtMonth = new Intl.DateTimeFormat(L.locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
   const months = [...new Set([...byDate.keys()].map(k => k.slice(0, 7)))].sort();
+
+  const navBar = document.createElement('div');
+  navBar.id = 'cal-nav';
+  calendar.appendChild(navBar);
+  const todayKey = partsFor(new Date().toISOString()).date;
+  let todayCell = null;
 
   for (const ym of months) {
     const [year, month] = ym.split('-').map(Number);
@@ -472,12 +687,17 @@ function renderCalendar() {
 
     const title = document.createElement('div');
     title.className = 'month-title';
-    title.textContent = fmtMonth.format(first);
+    title.textContent = cap(fmtMonth.format(first));
     calendar.appendChild(title);
+
+    const monthBtn = document.createElement('button');
+    monthBtn.textContent = title.textContent;
+    monthBtn.addEventListener('click', () => title.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    navBar.appendChild(monthBtn);
 
     const grid = document.createElement('div');
     grid.className = 'cal-grid';
-    for (const wd of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
+    for (const wd of L.weekdays) {
       const h = document.createElement('div');
       h.className = 'cal-weekday';
       h.textContent = wd;
@@ -496,10 +716,15 @@ function renderCalendar() {
       const dayMatches = byDate.get(key) || [];
       const cell = document.createElement('div');
       cell.className = 'cal-cell' + (dayMatches.length ? ' has-matches' : '');
+      if (key === todayKey) { cell.classList.add('today'); todayCell = cell; }
       const num = document.createElement('div');
       num.className = 'cal-daynum';
       num.textContent = day;
       cell.appendChild(num);
+
+      // Compact code for the mobile grid: FIFA code, or the raw placeholder (1A, 3ABC, TBD)
+      const shortName = n => TEAM_CODE[n] ?? (n === 'To be announced' ? L.tbd : n);
+      const shortSpan = n => isSel(n) ? `<span style="color:${colorOf(n)}">${shortName(n)}</span>` : shortName(n);
 
       for (const { match, time } of dayMatches) {
         const home = prettyTeam(match.homeTeam);
@@ -510,15 +735,23 @@ function renderCalendar() {
         entry.className = 'cal-match'
           + (match.broadcaster ? (match.broadcaster.startsWith('SVT') ? ' bc-svt' : ' bc-tv4') : '')
           + (isSel(match.homeTeam) || isSel(match.awayTeam) ? ' sel' : '');
-        entry.title = `${home.text} vs ${away.text} · ${match.stadium}, ${match.city}, ${match.country} · Match ${match.matchNumber}`
+        entry.title = `${home.text} vs ${away.text} · ${match.stadium}, ${match.city}, ${disp(match.country)} · ${L.match} ${match.matchNumber}`
           + (match.broadcaster ? ` · ${match.broadcaster}` : '');
         entry.innerHTML = `<span class="cm-time">${time}</span>${bcBadge(match)}
-          <span class="cm-teams${home.ph || away.ph ? ' placeholder' : ''}">${isSel(match.homeTeam) ? teamSpan(match.homeTeam) : home.text} ${mid} ${isSel(match.awayTeam) ? teamSpan(match.awayTeam) : away.text}</span>`;
+          <span class="cm-teams cm-full${home.ph || away.ph ? ' placeholder' : ''}">${isSel(match.homeTeam) ? teamSpan(match.homeTeam) : home.text} ${mid} ${isSel(match.awayTeam) ? teamSpan(match.awayTeam) : away.text}</span>
+          <span class="cm-teams cm-short${home.ph || away.ph ? ' placeholder' : ''}">${shortSpan(match.homeTeam)}<br>${shortSpan(match.awayTeam)}${played ? `<br><span class="cm-score">${match.homeScore}–${match.awayScore}</span>` : ''}</span>`;
         cell.appendChild(entry);
       }
       grid.appendChild(cell);
     }
     calendar.appendChild(grid);
+  }
+
+  if (todayCell) {
+    const btn = document.createElement('button');
+    btn.textContent = L.today;
+    btn.addEventListener('click', () => todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    navBar.appendChild(btn);
   }
 }
 
@@ -556,14 +789,14 @@ function renderTeamsBar() {
   const countryPanel = document.createElement('div');
   countryPanel.className = 'group-card teams-panel';
   const cTitle = document.createElement('h3');
-  cTitle.textContent = 'Host country';
-  cTitle.title = 'Click a country to show only matches played there';
+  cTitle.textContent = L.hostCountry;
+  cTitle.title = L.hostCountryTip;
   countryPanel.appendChild(cTitle);
-  const countries = [...new Set(allVenues().map(v => v.country))].sort((a, b) => a.localeCompare(b));
+  const countries = [...new Set(allVenues().map(v => v.country))].sort((a, b) => disp(a).localeCompare(disp(b), L.locale));
   for (const country of countries) {
     const chip = document.createElement('span');
     chip.className = 'team-chip venue-chip' + (selectedCountries.has(country) ? ' sel' : '');
-    chip.textContent = country;
+    chip.textContent = disp(country);
     chip.addEventListener('click', () => {
       if (selectedCountries.has(country)) selectedCountries.delete(country);
       else selectedCountries.add(country);
@@ -576,8 +809,8 @@ function renderTeamsBar() {
   const venuePanel = document.createElement('div');
   venuePanel.className = 'group-card teams-panel';
   const vTitle = document.createElement('h3');
-  vTitle.textContent = 'Venues';
-  vTitle.title = 'Click a venue to show only its matches';
+  vTitle.textContent = L.venuesHeading;
+  vTitle.title = L.venuesTip;
   venuePanel.appendChild(vTitle);
   for (const venue of allVenues()) {
     const chip = document.createElement('span');
@@ -596,22 +829,22 @@ function renderTeamsBar() {
   const panel = document.createElement('div');
   panel.className = 'group-card teams-panel';
   const title = document.createElement('h3');
-  title.textContent = 'Teams';
-  title.title = 'Click a team to highlight it in all views';
+  title.textContent = L.teamsHeading;
+  title.title = L.teamsTip;
   panel.appendChild(title);
 
   const toggle = document.createElement('span');
   toggle.className = 'team-chip filter-toggle' + (filterOnly ? ' on' : '');
-  toggle.textContent = filterOnly ? '✓ Only selected' : 'Only selected';
-  toggle.title = 'Show only matches involving the selected teams';
+  toggle.textContent = (filterOnly ? '✓ ' : '') + L.onlySelected;
+  toggle.title = L.onlySelectedTip;
   toggle.addEventListener('click', () => { filterOnly = !filterOnly; renderAll(); });
   panel.appendChild(toggle);
   const allTeams = [...new Set(MATCHES.filter(m => m.matchNumber <= 72).flatMap(m => [m.homeTeam, m.awayTeam]))]
-    .sort((a, b) => a.localeCompare(b));
+    .sort((a, b) => disp(a).localeCompare(disp(b), L.locale));
   for (const team of allTeams) {
     const chip = document.createElement('span');
     chip.className = 'team-chip' + (isSel(team) ? ' sel' : '');
-    chip.textContent = team;
+    chip.textContent = disp(team);
     if (isSel(team)) {
       chip.style.color = colorOf(team);
       chip.style.borderColor = colorOf(team);
@@ -636,7 +869,7 @@ function allVenues() {
 function renderVenues() {
   const container = document.getElementById('venues');
   container.innerHTML = '';
-  const fmtDate = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz });
+  const fmtDate = new Intl.DateTimeFormat(L.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz });
 
   for (const venue of allVenues()) {
     const visibleMatches = MATCHES.filter(m => m.location === venue.location && matchVisible(m));
@@ -651,14 +884,14 @@ function renderVenues() {
         <span class="gm-teams${home.ph || away.ph ? ' placeholder' : ''}">${home.ph ? home.text : teamSpan(m.homeTeam)} – ${away.ph ? away.text : teamSpan(m.awayTeam)}</span>
         <span class="gm-res${played ? '' : ' vs'}">${played ? m.homeScore + '–' + m.awayScore : 'vs'}</span>
         <span class="gm-bc">${bcBadge(m)}</span>
-        <span class="gm-loc">${knockout ? `<span class="stage-tag">${knockout}</span>` : m.group}</span>
+        <span class="gm-loc">${knockout ? `<span class="stage-tag">${knockout}</span>` : dispGroup(m.group)}</span>
       </div>`;
     }).join('');
 
     const card = document.createElement('div');
     card.className = 'group-card';
     card.innerHTML = `<h3>${venue.stadium}</h3>
-      <div class="venue-city">${venue.city}, ${venue.country}</div>
+      <div class="venue-city">${venue.city}, ${disp(venue.country)}</div>
       <div class="gm-list">${matchRows}</div>`;
     container.appendChild(card);
   }
@@ -667,15 +900,16 @@ function renderVenues() {
 function renderGroups() {
   const container = document.getElementById('groups');
   container.innerHTML = '';
-  const fmtDate = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz });
+  const fmtDate = new Intl.DateTimeFormat(L.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz });
 
   for (const group of computeGroups()) {
     const card = document.createElement('div');
     card.className = 'group-card';
+    card.dataset.group = group.name;
     const rows = group.rows.map(r => {
       const gd = r.gf - r.ga;
       return `<tr${isSel(r.team) ? ' class="sel"' : ''}>
-        <td class="t" title="${r.team}">${teamSpan(r.team)}</td>
+        <td class="t" title="${disp(r.team)}">${teamSpan(r.team)}</td>
         <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
         <td>${gd > 0 ? '+' + gd : gd}</td><td class="pts">${r.pts}</td>
       </tr>`;
@@ -690,14 +924,14 @@ function renderGroups() {
         <span class="gm-teams">${teamSpan(m.homeTeam)} – ${teamSpan(m.awayTeam)}</span>
         <span class="gm-res${played ? '' : ' vs'}">${played ? m.homeScore + '–' + m.awayScore : 'vs'}</span>
         <span class="gm-bc">${bcBadge(m)}</span>
-        <span class="gm-loc">${m.stadium}, ${m.city}, ${m.country}</span>
+        <span class="gm-loc">${m.stadium}, ${m.city}, ${disp(m.country)}</span>
       </div>`;
     }).join('');
 
-    card.innerHTML = `<h3>${group.name}</h3>
+    card.innerHTML = `<h3>${dispGroup(group.name)}</h3>
       <table>
         <colgroup><col style="width:43%"><col><col><col><col><col style="width:13%"><col></colgroup>
-        <thead><tr><th class="t">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/-</th><th>Pts</th></tr></thead>
+        <thead><tr><th class="t">${L.thTeam}</th>${L.th.map(h => `<th>${h}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="gm-list">${matchRows}</div>`;
@@ -705,17 +939,44 @@ function renderGroups() {
   }
 }
 
+// ---- Mobile filters toggle ----
+const btnFilters = document.getElementById('btn-filters');
+btnFilters.addEventListener('click', () => {
+  document.body.classList.toggle('filters-open');
+  updateFiltersBtn();
+});
+function updateFiltersBtn() {
+  const active = teamColors.size + selectedCountries.size + selectedVenues.size + (filterOnly ? 1 : 0);
+  const open = document.body.classList.contains('filters-open');
+  btnFilters.textContent = (open ? L.hideFilters : L.filters) + (active ? L.active(active) : '');
+  btnFilters.classList.toggle('on', active > 0);
+}
+
 // ---- Timezone toggle ----
 const btnTz = document.getElementById('btn-tz');
 const subtitle = document.getElementById('subtitle');
 function renderAll() {
+  for (const v of VIEWS) document.getElementById('btn-' + v).textContent = L.nav[v];
   renderTeamsBar();
+  updateFiltersBtn();
   renderList();
   renderCalendar();
   renderGroups();
   renderVenues();
-  btnTz.textContent = tz === 'UTC' ? 'Show Stockholm time' : 'Show UTC';
-  subtitle.textContent = `All 104 matches, sorted by kick-off time. Times are ${tz === 'UTC' ? 'UTC' : `Europe/Stockholm (${tzAbbr()})`}.`;
+  btnTz.textContent = tz === 'UTC' ? L.showLocal : L.showUtc;
+  subtitle.textContent = L.subtitle(tz === 'UTC' ? 'UTC' : L.localTz(tzAbbr()));
+  updateStamp();
+  saveFilters();
+}
+// "Results updated <time>" — from the Last-Modified header of matches.json
+// (the sidecar only rewrites the file when results actually change)
+let dataUpdatedAt = null;
+function updateStamp() {
+  if (!dataUpdatedAt) return;
+  const el = document.getElementById('last-updated');
+  el.hidden = false;
+  const fmt = new Intl.DateTimeFormat(L.locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: tz });
+  el.textContent = `${L.lastUpdated}: ${fmt.format(dataUpdatedAt)} (${tzAbbr()})`;
 }
 btnTz.addEventListener('click', () => { tz = tz === 'UTC' ? TZ_LOCAL : 'UTC'; renderAll(); });
 
@@ -731,8 +992,54 @@ function showView(view) {
   }
 }
 
-renderAll();
+// Group tags in the list view jump to that group's card in the groups view
+list.addEventListener('click', e => {
+  const tag = e.target.closest('.group-link');
+  if (!tag) return;
+  showView('groups');
+  document.querySelector(`#groups .group-card[data-group="${tag.dataset.group}"]`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ---- Language toggle ----
+const btnLangEn = document.getElementById('btn-lang-en');
+const btnLangSv = document.getElementById('btn-lang-sv');
+function setLang(l) {
+  lang = l;
+  L = I18N[l];
+  try { localStorage.setItem('lang', l); } catch {}
+  document.documentElement.lang = l;
+  btnLangEn.classList.toggle('active', l === 'en');
+  btnLangSv.classList.toggle('active', l === 'sv');
+  renderAll();
+}
+btnLangEn.addEventListener('click', () => setLang('en'));
+btnLangSv.addEventListener('click', () => setLang('sv'));
+
+setLang(lang);
 showView('groups');
+
+// ---- Live data refresh ----
+// In the cluster an updater sidecar rewrites matches.json with fresh results;
+// pick those up on load and every 5 minutes. Fails silently on file:// or offline,
+// where the baked-in data above is all there is.
+async function refreshData() {
+  try {
+    const res = await fetch('matches.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const lm = new Date(res.headers.get('last-modified'));
+    if (!isNaN(lm)) dataUpdatedAt = lm;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length && JSON.stringify(data) !== JSON.stringify(MATCHES)) {
+      MATCHES = data;
+      renderAll();
+    } else {
+      updateStamp();
+    }
+  } catch { /* keep current data */ }
+}
+refreshData();
+setInterval(refreshData, 5 * 60 * 1000);
 </script>
 </body>
 </html>
