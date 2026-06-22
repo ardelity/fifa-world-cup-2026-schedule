@@ -1,0 +1,618 @@
+{
+  "combination": "ACDEFGHK",
+  "bracket": [
+    {
+      "matchNumber": 73,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-28T19:00:00Z",
+      "stadium": "SoFi Stadium",
+      "city": "Los Angeles (Inglewood)",
+      "country": "USA",
+      "home": {
+        "slot": "2A",
+        "position": 2,
+        "group": "A",
+        "team": "Korea Republic"
+      },
+      "away": {
+        "slot": "2B",
+        "position": 2,
+        "group": "B",
+        "team": "Switzerland"
+      }
+    },
+    {
+      "matchNumber": 74,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-29T20:30:00Z",
+      "stadium": "Gillette Stadium",
+      "city": "Boston (Foxborough)",
+      "country": "USA",
+      "home": {
+        "slot": "Germany",
+        "team": "Germany",
+        "resolved": true
+      },
+      "away": {
+        "slot": "3ABCDF",
+        "position": 3,
+        "eligibleGroups": "ABCDF",
+        "group": "C",
+        "team": "Scotland"
+      }
+    },
+    {
+      "matchNumber": 75,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-30T01:00:00Z",
+      "stadium": "Estadio BBVA",
+      "city": "Monterrey",
+      "country": "Mexico",
+      "home": {
+        "slot": "1F",
+        "position": 1,
+        "group": "F",
+        "team": "Netherlands"
+      },
+      "away": {
+        "slot": "2C",
+        "position": 2,
+        "group": "C",
+        "team": "Morocco"
+      }
+    },
+    {
+      "matchNumber": 76,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-29T17:00:00Z",
+      "stadium": "NRG Stadium",
+      "city": "Houston",
+      "country": "USA",
+      "home": {
+        "slot": "1C",
+        "position": 1,
+        "group": "C",
+        "team": "Brazil"
+      },
+      "away": {
+        "slot": "2F",
+        "position": 2,
+        "group": "F",
+        "team": "Japan"
+      }
+    },
+    {
+      "matchNumber": 77,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-30T21:00:00Z",
+      "stadium": "MetLife Stadium",
+      "city": "New York/New Jersey (East Rutherford)",
+      "country": "USA",
+      "home": {
+        "slot": "1I",
+        "position": 1,
+        "group": "I",
+        "team": "Norway"
+      },
+      "away": {
+        "slot": "3CDFGH",
+        "position": 3,
+        "eligibleGroups": "CDFGH",
+        "group": "F",
+        "team": "Sweden"
+      }
+    },
+    {
+      "matchNumber": 78,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-30T17:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "slot": "2E",
+        "position": 2,
+        "group": "E",
+        "team": "Côte d'Ivoire"
+      },
+      "away": {
+        "slot": "2I",
+        "position": 2,
+        "group": "I",
+        "team": "France"
+      }
+    },
+    {
+      "matchNumber": 79,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-01T01:00:00Z",
+      "stadium": "Estadio Azteca",
+      "city": "Mexico City",
+      "country": "Mexico",
+      "home": {
+        "slot": "Mexico",
+        "team": "Mexico",
+        "resolved": true
+      },
+      "away": {
+        "slot": "3CEFHI",
+        "position": 3,
+        "eligibleGroups": "CEFHI",
+        "group": "H",
+        "team": "Cabo Verde"
+      }
+    },
+    {
+      "matchNumber": 80,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-01T16:00:00Z",
+      "stadium": "Mercedes-Benz Stadium",
+      "city": "Atlanta",
+      "country": "USA",
+      "home": {
+        "slot": "1L",
+        "position": 1,
+        "group": "L",
+        "team": "England"
+      },
+      "away": {
+        "slot": "3EHIJK",
+        "position": 3,
+        "eligibleGroups": "EHIJK",
+        "group": "K",
+        "team": "Portugal"
+      }
+    },
+    {
+      "matchNumber": 81,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-02T00:00:00Z",
+      "stadium": "Levi's Stadium",
+      "city": "San Francisco Bay Area (Santa Clara)",
+      "country": "USA",
+      "home": {
+        "slot": "USA",
+        "team": "USA",
+        "resolved": true
+      },
+      "away": {
+        "slot": "3BEFIJ",
+        "position": 3,
+        "eligibleGroups": "BEFIJ",
+        "group": "E",
+        "team": "Ecuador"
+      }
+    },
+    {
+      "matchNumber": 82,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-01T20:00:00Z",
+      "stadium": "Lumen Field",
+      "city": "Seattle",
+      "country": "USA",
+      "home": {
+        "slot": "1G",
+        "position": 1,
+        "group": "G",
+        "team": "Egypt"
+      },
+      "away": {
+        "slot": "3AEHIJ",
+        "position": 3,
+        "eligibleGroups": "AEHIJ",
+        "group": "A",
+        "team": "Czechia"
+      }
+    },
+    {
+      "matchNumber": 83,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-02T23:00:00Z",
+      "stadium": "BMO Field",
+      "city": "Toronto",
+      "country": "Canada",
+      "home": {
+        "slot": "2K",
+        "position": 2,
+        "group": "K",
+        "team": "Congo DR"
+      },
+      "away": {
+        "slot": "2L",
+        "position": 2,
+        "group": "L",
+        "team": "Ghana"
+      }
+    },
+    {
+      "matchNumber": 84,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-02T19:00:00Z",
+      "stadium": "SoFi Stadium",
+      "city": "Los Angeles (Inglewood)",
+      "country": "USA",
+      "home": {
+        "slot": "1H",
+        "position": 1,
+        "group": "H",
+        "team": "Spain"
+      },
+      "away": {
+        "slot": "2J",
+        "position": 2,
+        "group": "J",
+        "team": "Austria"
+      }
+    },
+    {
+      "matchNumber": 85,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-03T03:00:00Z",
+      "stadium": "BC Place",
+      "city": "Vancouver",
+      "country": "Canada",
+      "home": {
+        "slot": "1B",
+        "position": 1,
+        "group": "B",
+        "team": "Canada"
+      },
+      "away": {
+        "slot": "3EFGIJ",
+        "position": 3,
+        "eligibleGroups": "EFGIJ",
+        "group": "G",
+        "team": "Belgium"
+      }
+    },
+    {
+      "matchNumber": 86,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-03T22:00:00Z",
+      "stadium": "Hard Rock Stadium",
+      "city": "Miami",
+      "country": "USA",
+      "home": {
+        "slot": "1J",
+        "position": 1,
+        "group": "J",
+        "team": "Argentina"
+      },
+      "away": {
+        "slot": "2H",
+        "position": 2,
+        "group": "H",
+        "team": "Uruguay"
+      }
+    },
+    {
+      "matchNumber": 87,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-04T01:30:00Z",
+      "stadium": "Arrowhead Stadium",
+      "city": "Kansas City",
+      "country": "USA",
+      "home": {
+        "slot": "1K",
+        "position": 1,
+        "group": "K",
+        "team": "Colombia"
+      },
+      "away": {
+        "slot": "3DEIJL",
+        "position": 3,
+        "eligibleGroups": "DEIJL",
+        "group": "D",
+        "team": "Paraguay"
+      }
+    },
+    {
+      "matchNumber": 88,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-03T18:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "slot": "2D",
+        "position": 2,
+        "group": "D",
+        "team": "Australia"
+      },
+      "away": {
+        "slot": "2G",
+        "position": 2,
+        "group": "G",
+        "team": "IR Iran"
+      }
+    },
+    {
+      "matchNumber": 89,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-04T21:00:00Z",
+      "stadium": "Lincoln Financial Field",
+      "city": "Philadelphia",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 74,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 77,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 90,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-04T17:00:00Z",
+      "stadium": "NRG Stadium",
+      "city": "Houston",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 73,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 75,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 91,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-05T20:00:00Z",
+      "stadium": "MetLife Stadium",
+      "city": "New York/New Jersey (East Rutherford)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 76,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 78,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 92,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-06T00:00:00Z",
+      "stadium": "Estadio Azteca",
+      "city": "Mexico City",
+      "country": "Mexico",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 79,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 80,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 93,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-06T19:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 83,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 84,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 94,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-07T00:00:00Z",
+      "stadium": "Lumen Field",
+      "city": "Seattle",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 81,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 82,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 95,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-07T16:00:00Z",
+      "stadium": "Mercedes-Benz Stadium",
+      "city": "Atlanta",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 86,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 88,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 96,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-07T20:00:00Z",
+      "stadium": "BC Place",
+      "city": "Vancouver",
+      "country": "Canada",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 85,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 87,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 97,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-09T20:00:00Z",
+      "stadium": "Gillette Stadium",
+      "city": "Boston (Foxborough)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 89,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 90,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 98,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-10T19:00:00Z",
+      "stadium": "SoFi Stadium",
+      "city": "Los Angeles (Inglewood)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 93,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 94,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 99,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-11T21:00:00Z",
+      "stadium": "Hard Rock Stadium",
+      "city": "Miami",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 91,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 92,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 100,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-12T01:00:00Z",
+      "stadium": "Arrowhead Stadium",
+      "city": "Kansas City",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 95,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 96,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 101,
+      "round": "Semi-final",
+      "dateUtc": "2026-07-14T19:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 97,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 98,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 102,
+      "round": "Semi-final",
+      "dateUtc": "2026-07-15T19:00:00Z",
+      "stadium": "Mercedes-Benz Stadium",
+      "city": "Atlanta",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 99,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 100,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 103,
+      "round": "Match for third place",
+      "dateUtc": "2026-07-18T21:00:00Z",
+      "stadium": "Hard Rock Stadium",
+      "city": "Miami",
+      "country": "USA",
+      "home": {
+        "sourceType": "loser",
+        "sourceMatch": 101,
+        "team": null
+      },
+      "away": {
+        "sourceType": "loser",
+        "sourceMatch": 102,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 104,
+      "round": "Final",
+      "dateUtc": "2026-07-19T19:00:00Z",
+      "stadium": "MetLife Stadium",
+      "city": "New York/New Jersey (East Rutherford)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 101,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 102,
+        "team": null
+      }
+    }
+  ]
+}

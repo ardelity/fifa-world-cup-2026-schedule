@@ -54,7 +54,7 @@
   }
   #lang-switch button:hover { opacity: .85; }
   #lang-switch button.active { border-color: var(--accent); opacity: 1; }
-  #lang-switch img { width: 28px; height: 21px; border-radius: 3px; display: block; }
+  #lang-switch img { width: 18px; height: 21px; border-radius: 3px; display: block; }
   main {
     max-width: 760px;
     margin: 0 auto;
@@ -410,6 +410,106 @@
     #cal-nav { gap: 6px; padding: 8px 2px 6px; }
     #cal-nav button { padding: 4px 10px; font-size: .75rem; }
   }
+
+  /* Bracket (knockout) view — center-converging tree */
+  #bracket { max-width: 1480px; }
+  #bracket[hidden] { display: none; }
+  /* The bracket spans the full width and applies no filtering — hide the filter sidebar */
+  body.bracket-view #teams-bar,
+  body.bracket-view #btn-filters { display: none; }
+  .bj-empty { color: var(--muted); text-align: center; padding: 40px 12px; }
+  .bj-scroll { padding: 4px 0 16px; }
+  /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
+  .bj { display: flex; align-items: stretch; width: 100%; }
+  .bj-side { display: flex; flex: 3 1 0; min-width: 0; }
+  .bj-col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
+  .bj-col-head, .bj-round-head { font-size: .78rem; color: var(--muted); text-align: center; padding: 2px 0 10px; white-space: nowrap; }
+  .bj-seeds { flex: 1; display: flex; flex-direction: column; justify-content: space-around; }
+  .bj-seed { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 6px 18px; }
+
+  .bj-card { position: relative; }
+  .bj-when { display: flex; justify-content: space-between; gap: 8px; font-size: .6rem; color: var(--muted); padding: 0 3px 2px; }
+  .bj-match { background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .bj-row { display: flex; align-items: center; gap: 7px; padding: 4px 7px; font-size: .74rem; }
+  .bj-row + .bj-row { border-top: 1px solid var(--line); }
+  /* Team whose group position is settled (qualified + seeded) */
+  .bj-row.bj-decided { background: rgba(95, 217, 143, .16); }
+  .bj-flag { flex: 0 0 auto; width: 18px; height: 13px; border: 1px solid var(--line); border-radius: 2px; background: var(--card-played); }
+  .bj-venue { display: flex; align-items: center; gap: 5px; padding: 3px 7px 2px; font-size: .58rem; color: var(--muted); }
+  .bj-venue-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+  .bj-venue-text span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bj-cflag { flex: 0 0 auto; width: 15px; height: 11px; border: 1px solid var(--line); border-radius: 2px; }
+  .bj-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bj-name.placeholder { color: var(--muted); }
+  .bj-row.bj-win .bj-name { font-weight: 700; }
+  .bj-seed-code { flex: 0 0 auto; font-size: .6rem; color: var(--muted); background: var(--card-played); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+  .bj-score { flex: 0 0 auto; min-width: 10px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bj-num { position: absolute; top: 50%; transform: translateY(-50%); font-size: .64rem; color: var(--muted); text-decoration: underline; pointer-events: none; }
+  .bj-card.num-l .bj-num { right: 100%; margin-right: 5px; }
+  .bj-card.num-r .bj-num { left: 100%; margin-left: 5px; }
+  .bj-card.num-b .bj-num { position: static; transform: none; display: block; text-align: center; margin-top: 5px; }
+
+  /* Center cluster: Final on top, the two semifinals below, third-place play-off at the bottom */
+  .bj-center { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 10px; flex: 2 1 0; min-width: 0; }
+  .bj-final, .bj-third { width: 100%; max-width: 220px; }
+  .bj-final .bj-match { border-color: var(--accent); }
+  .bj-sf-row { display: flex; gap: 12px; width: 100%; margin: 20px 0; }
+  .bj-sf { flex: 1 1 0; min-width: 0; }
+  .bj-third { margin-top: 4px; opacity: .92; }
+
+  /* Best third-placed teams — 3 columns × 4, filled top-to-bottom then left-to-right */
+  .bj-thirds { max-width: 760px; margin: 0 auto 18px; }
+  .bj-thirds-title { font-size: .9rem; margin: 0 0 10px; text-align: center; color: var(--text); }
+  .bj-thirds-grid { display: grid; grid-template-rows: repeat(4, auto); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px 14px; }
+  .bj-th-item { display: flex; align-items: center; gap: 7px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); font-size: .74rem; }
+  .bj-th-item.q { border-color: var(--hl-border); background: var(--hl-bg); }
+  .bj-th-item:not(.q) { opacity: .5; }
+  .bj-th-rank { flex: 0 0 auto; width: 16px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bj-th-team { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bj-th-grp { flex: 0 0 auto; font-size: .62rem; color: var(--muted); white-space: nowrap; }
+  .bj-th-gd { flex: 0 0 auto; min-width: 24px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bj-th-pts { flex: 0 0 auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bj-combo { text-align: center; color: var(--muted); font-size: .74rem; margin-top: 12px; }
+  @media (max-width: 560px) { .bj-thirds-grid { grid-template-rows: repeat(6, auto); } }
+
+  /* Connectors — left side flows right, right side flows left */
+  .bj-side-l .bj-col .bj-seeds .bj-seed::after,
+  .bj-side-r .bj-col:not(:first-child) .bj-seeds .bj-seed::after {
+    content: ''; position: absolute; width: 18px;
+  }
+  .bj-side-l .bj-col .bj-seeds .bj-seed::after { right: 0; border-right: 2px solid var(--line); }
+  .bj-side-r .bj-col:not(:first-child) .bj-seeds .bj-seed::after { left: 0; border-left: 2px solid var(--line); }
+  .bj-side-l .bj-col .bj-seeds .bj-seed:nth-child(odd)::after,
+  .bj-side-r .bj-col:not(:first-child) .bj-seeds .bj-seed:nth-child(odd)::after { top: 50%; bottom: 0; border-top: 2px solid var(--line); }
+  .bj-side-l .bj-col .bj-seeds .bj-seed:nth-child(even)::after,
+  .bj-side-r .bj-col:not(:first-child) .bj-seeds .bj-seed:nth-child(even)::after { top: 0; bottom: 50%; border-bottom: 2px solid var(--line); }
+  .bj-side-l .bj-col:not(:first-child) .bj-seeds .bj-seed::before {
+    content: ''; position: absolute; left: 0; width: 18px; top: 50%; border-top: 2px solid var(--line);
+  }
+  .bj-side-r .bj-col:not(:last-child) .bj-seeds .bj-seed::before {
+    content: ''; position: absolute; right: 0; width: 18px; top: 50%; border-top: 2px solid var(--line);
+  }
+  /* Quarter-final → semifinal: short stub into the centre cluster */
+  .bj-sf-l { position: relative; }
+  .bj-sf-r { position: relative; }
+  .bj-sf-l::before { content: ''; position: absolute; left: -12px; top: 50%; width: 12px; border-top: 2px solid var(--line); }
+  .bj-sf-r::after { content: ''; position: absolute; right: -12px; top: 50%; width: 12px; border-top: 2px solid var(--line); }
+
+  /* Too many columns to fit a phone — fall back to fixed-size cards with horizontal scroll */
+  @media (max-width: 700px) {
+    .bj-scroll { overflow-x: auto; }
+    .bj { width: max-content; }
+    .bj-side, .bj-col, .bj-center, .bj-sf { flex: 0 0 auto; }
+    .bj-seed { padding: 6px 20px; min-width: 124px; }
+    .bj-row { font-size: .68rem; padding: 3px 5px; }
+    .bj-final, .bj-third { width: 180px; }
+    .bj-sf { width: 168px; }
+    .bj-center { min-width: 240px; }
+    .bj-side-l .bj-col .bj-seeds .bj-seed::after,
+    .bj-side-r .bj-col:not(:first-child) .bj-seeds .bj-seed::after,
+    .bj-side-l .bj-col:not(:first-child) .bj-seeds .bj-seed::before,
+    .bj-side-r .bj-col:not(:last-child) .bj-seeds .bj-seed::before { width: 20px; }
+  }
 </style>
 </head>
 <body>
@@ -426,6 +526,7 @@
     <button id="btn-calendar">Kalender</button>
     <button id="btn-groups" class="active">Grupper</button>
     <button id="btn-venues">Arenor</button>
+    <button id="btn-bracket">Slutspel</button>
     <div class="sep"></div>
     <button id="btn-tz" class="tz">Visa UTC</button>
   </nav>
@@ -438,6 +539,7 @@
     <main id="calendar" hidden></main>
     <main id="groups"></main>
     <main id="venues" hidden></main>
+    <main id="bracket" hidden></main>
   </div>
 </div>
 <script>
@@ -491,8 +593,8 @@ let MATCHES = [
     "awayTeam": "Paraguay",
     "group": "Group D",
     "location": "Los Angeles Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 4,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "SoFi Stadium",
     "city": "Los Angeles (Inglewood)",
@@ -505,8 +607,8 @@ let MATCHES = [
     "awayTeam": "Switzerland",
     "group": "Group B",
     "location": "San Francisco Bay Area Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "Levi's Stadium",
     "city": "San Francisco Bay Area (Santa Clara)",
@@ -519,8 +621,8 @@ let MATCHES = [
     "awayTeam": "Morocco",
     "group": "Group C",
     "location": "New York/New Jersey Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 1,
     "broadcaster": "SVT1",
     "stadium": "MetLife Stadium",
     "city": "New York/New Jersey (East Rutherford)",
@@ -533,8 +635,8 @@ let MATCHES = [
     "awayTeam": "Scotland",
     "group": "Group C",
     "location": "Boston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 1,
     "broadcaster": "SVT1",
     "stadium": "Gillette Stadium",
     "city": "Boston (Foxborough)",
@@ -547,8 +649,8 @@ let MATCHES = [
     "awayTeam": "Türkiye",
     "group": "Group D",
     "location": "BC Place Vancouver",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "BC Place",
     "city": "Vancouver",
@@ -561,8 +663,8 @@ let MATCHES = [
     "awayTeam": "Curaçao",
     "group": "Group E",
     "location": "Houston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 7,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "NRG Stadium",
     "city": "Houston",
@@ -575,8 +677,8 @@ let MATCHES = [
     "awayTeam": "Japan",
     "group": "Group F",
     "location": "Dallas Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 2,
     "broadcaster": "TV4",
     "stadium": "AT&T Stadium",
     "city": "Dallas (Arlington)",
@@ -589,8 +691,8 @@ let MATCHES = [
     "awayTeam": "Ecuador",
     "group": "Group E",
     "location": "Philadelphia Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "Lincoln Financial Field",
     "city": "Philadelphia",
@@ -603,8 +705,8 @@ let MATCHES = [
     "awayTeam": "Tunisia",
     "group": "Group F",
     "location": "Monterrey Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 5,
+    "awayScore": 1,
     "broadcaster": "SVT1",
     "stadium": "Estadio BBVA",
     "city": "Monterrey",
@@ -617,8 +719,8 @@ let MATCHES = [
     "awayTeam": "Cabo Verde",
     "group": "Group H",
     "location": "Atlanta Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 0,
     "broadcaster": "SVT1",
     "stadium": "Mercedes-Benz Stadium",
     "city": "Atlanta",
@@ -631,8 +733,8 @@ let MATCHES = [
     "awayTeam": "Egypt",
     "group": "Group G",
     "location": "Seattle Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 1,
     "broadcaster": "SVT1/SVT2",
     "stadium": "Lumen Field",
     "city": "Seattle",
@@ -645,8 +747,8 @@ let MATCHES = [
     "awayTeam": "Uruguay",
     "group": "Group H",
     "location": "Miami Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "Hard Rock Stadium",
     "city": "Miami",
@@ -659,8 +761,8 @@ let MATCHES = [
     "awayTeam": "New Zealand",
     "group": "Group G",
     "location": "Los Angeles Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 2,
     "broadcaster": "TV4",
     "stadium": "SoFi Stadium",
     "city": "Los Angeles (Inglewood)",
@@ -673,8 +775,8 @@ let MATCHES = [
     "awayTeam": "Senegal",
     "group": "Group I",
     "location": "New York/New Jersey Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 3,
+    "awayScore": 1,
     "broadcaster": "SVT1",
     "stadium": "MetLife Stadium",
     "city": "New York/New Jersey (East Rutherford)",
@@ -687,8 +789,8 @@ let MATCHES = [
     "awayTeam": "Norway",
     "group": "Group I",
     "location": "Boston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 4,
     "broadcaster": "TV4",
     "stadium": "Gillette Stadium",
     "city": "Boston (Foxborough)",
@@ -701,8 +803,8 @@ let MATCHES = [
     "awayTeam": "Algeria",
     "group": "Group J",
     "location": "Kansas City Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 3,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "Arrowhead Stadium",
     "city": "Kansas City",
@@ -715,8 +817,8 @@ let MATCHES = [
     "awayTeam": "Jordan",
     "group": "Group J",
     "location": "San Francisco Bay Area Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 3,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "Levi's Stadium",
     "city": "San Francisco Bay Area (Santa Clara)",
@@ -729,8 +831,8 @@ let MATCHES = [
     "awayTeam": "Congo DR",
     "group": "Group K",
     "location": "Houston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "NRG Stadium",
     "city": "Houston",
@@ -743,8 +845,8 @@ let MATCHES = [
     "awayTeam": "Croatia",
     "group": "Group L",
     "location": "Dallas Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 4,
+    "awayScore": 2,
     "broadcaster": "TV4",
     "stadium": "AT&T Stadium",
     "city": "Dallas (Arlington)",
@@ -757,8 +859,8 @@ let MATCHES = [
     "awayTeam": "Panama",
     "group": "Group L",
     "location": "Toronto Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "BMO Field",
     "city": "Toronto",
@@ -771,8 +873,8 @@ let MATCHES = [
     "awayTeam": "Colombia",
     "group": "Group K",
     "location": "Mexico City Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 3,
     "broadcaster": "TV4",
     "stadium": "Estadio Azteca",
     "city": "Mexico City",
@@ -785,8 +887,8 @@ let MATCHES = [
     "awayTeam": "South Africa",
     "group": "Group A",
     "location": "Atlanta Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "Mercedes-Benz Stadium",
     "city": "Atlanta",
@@ -799,8 +901,8 @@ let MATCHES = [
     "awayTeam": "Bosnia and Herzegovina",
     "group": "Group B",
     "location": "Los Angeles Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 4,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "SoFi Stadium",
     "city": "Los Angeles (Inglewood)",
@@ -813,8 +915,8 @@ let MATCHES = [
     "awayTeam": "Qatar",
     "group": "Group B",
     "location": "BC Place Vancouver",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 6,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "BC Place",
     "city": "Vancouver",
@@ -827,8 +929,8 @@ let MATCHES = [
     "awayTeam": "Korea Republic",
     "group": "Group A",
     "location": "Guadalajara Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "Estadio Akron",
     "city": "Guadalajara",
@@ -841,8 +943,8 @@ let MATCHES = [
     "awayTeam": "Australia",
     "group": "Group D",
     "location": "Seattle Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 0,
     "broadcaster": "SVT2",
     "stadium": "Lumen Field",
     "city": "Seattle",
@@ -855,8 +957,8 @@ let MATCHES = [
     "awayTeam": "Morocco",
     "group": "Group C",
     "location": "Boston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 1,
     "broadcaster": "SVT1",
     "stadium": "Gillette Stadium",
     "city": "Boston (Foxborough)",
@@ -864,13 +966,13 @@ let MATCHES = [
   },
   {
     "matchNumber": 29,
-    "dateUtc": "2026-06-20T01:00:00Z",
+    "dateUtc": "2026-06-20T00:30:00Z",
     "homeTeam": "Brazil",
     "awayTeam": "Haiti",
     "group": "Group C",
     "location": "Philadelphia Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 3,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "Lincoln Financial Field",
     "city": "Philadelphia",
@@ -878,13 +980,13 @@ let MATCHES = [
   },
   {
     "matchNumber": 31,
-    "dateUtc": "2026-06-20T04:00:00Z",
+    "dateUtc": "2026-06-20T03:00:00Z",
     "homeTeam": "Türkiye",
     "awayTeam": "Paraguay",
     "group": "Group D",
     "location": "San Francisco Bay Area Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "Levi's Stadium",
     "city": "San Francisco Bay Area (Santa Clara)",
@@ -897,8 +999,8 @@ let MATCHES = [
     "awayTeam": "Sweden",
     "group": "Group F",
     "location": "Houston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 5,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "NRG Stadium",
     "city": "Houston",
@@ -911,8 +1013,8 @@ let MATCHES = [
     "awayTeam": "Côte d'Ivoire",
     "group": "Group E",
     "location": "Toronto Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "BMO Field",
     "city": "Toronto",
@@ -925,8 +1027,8 @@ let MATCHES = [
     "awayTeam": "Curaçao",
     "group": "Group E",
     "location": "Kansas City Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "Arrowhead Stadium",
     "city": "Kansas City",
@@ -939,8 +1041,8 @@ let MATCHES = [
     "awayTeam": "Japan",
     "group": "Group F",
     "location": "Monterrey Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 4,
     "broadcaster": "SVT1",
     "stadium": "Estadio BBVA",
     "city": "Monterrey",
@@ -953,8 +1055,8 @@ let MATCHES = [
     "awayTeam": "Saudi Arabia",
     "group": "Group H",
     "location": "Atlanta Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 4,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "Mercedes-Benz Stadium",
     "city": "Atlanta",
@@ -967,8 +1069,8 @@ let MATCHES = [
     "awayTeam": "IR Iran",
     "group": "Group G",
     "location": "Los Angeles Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "SoFi Stadium",
     "city": "Los Angeles (Inglewood)",
@@ -981,8 +1083,8 @@ let MATCHES = [
     "awayTeam": "Cabo Verde",
     "group": "Group H",
     "location": "Miami Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 2,
     "broadcaster": "TV4",
     "stadium": "Hard Rock Stadium",
     "city": "Miami",
@@ -995,8 +1097,8 @@ let MATCHES = [
     "awayTeam": "Egypt",
     "group": "Group G",
     "location": "BC Place Vancouver",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 3,
     "broadcaster": "TV4",
     "stadium": "BC Place",
     "city": "Vancouver",
@@ -1009,8 +1111,8 @@ let MATCHES = [
     "awayTeam": "Austria",
     "group": "Group J",
     "location": "Dallas Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 0,
     "broadcaster": "SVT2/SVT1",
     "stadium": "AT&T Stadium",
     "city": "Dallas (Arlington)",
@@ -1481,7 +1583,7 @@ let MATCHES = [
   {
     "matchNumber": 74,
     "dateUtc": "2026-06-29T20:30:00Z",
-    "homeTeam": "1E",
+    "homeTeam": "Germany",
     "awayTeam": "3ABCDF",
     "group": null,
     "location": "Boston Stadium",
@@ -1537,7 +1639,7 @@ let MATCHES = [
   {
     "matchNumber": 79,
     "dateUtc": "2026-07-01T01:00:00Z",
-    "homeTeam": "1A",
+    "homeTeam": "Mexico",
     "awayTeam": "3CEFHI",
     "group": null,
     "location": "Mexico City Stadium",
@@ -1579,7 +1681,7 @@ let MATCHES = [
   {
     "matchNumber": 81,
     "dateUtc": "2026-07-02T00:00:00Z",
-    "homeTeam": "1D",
+    "homeTeam": "USA",
     "awayTeam": "3BEFIJ",
     "group": null,
     "location": "San Francisco Bay Area Stadium",
@@ -1899,6 +2001,624 @@ let MATCHES = [
     "country": "USA"
   }
 ];
+let BRACKET = {
+  "combination": "ACDEFGHK",
+  "bracket": [
+    {
+      "matchNumber": 73,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-28T19:00:00Z",
+      "stadium": "SoFi Stadium",
+      "city": "Los Angeles (Inglewood)",
+      "country": "USA",
+      "home": {
+        "slot": "2A",
+        "position": 2,
+        "group": "A",
+        "team": "Korea Republic"
+      },
+      "away": {
+        "slot": "2B",
+        "position": 2,
+        "group": "B",
+        "team": "Switzerland"
+      }
+    },
+    {
+      "matchNumber": 74,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-29T20:30:00Z",
+      "stadium": "Gillette Stadium",
+      "city": "Boston (Foxborough)",
+      "country": "USA",
+      "home": {
+        "slot": "Germany",
+        "team": "Germany",
+        "resolved": true
+      },
+      "away": {
+        "slot": "3ABCDF",
+        "position": 3,
+        "eligibleGroups": "ABCDF",
+        "group": "C",
+        "team": "Scotland"
+      }
+    },
+    {
+      "matchNumber": 75,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-30T01:00:00Z",
+      "stadium": "Estadio BBVA",
+      "city": "Monterrey",
+      "country": "Mexico",
+      "home": {
+        "slot": "1F",
+        "position": 1,
+        "group": "F",
+        "team": "Netherlands"
+      },
+      "away": {
+        "slot": "2C",
+        "position": 2,
+        "group": "C",
+        "team": "Morocco"
+      }
+    },
+    {
+      "matchNumber": 76,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-29T17:00:00Z",
+      "stadium": "NRG Stadium",
+      "city": "Houston",
+      "country": "USA",
+      "home": {
+        "slot": "1C",
+        "position": 1,
+        "group": "C",
+        "team": "Brazil"
+      },
+      "away": {
+        "slot": "2F",
+        "position": 2,
+        "group": "F",
+        "team": "Japan"
+      }
+    },
+    {
+      "matchNumber": 77,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-30T21:00:00Z",
+      "stadium": "MetLife Stadium",
+      "city": "New York/New Jersey (East Rutherford)",
+      "country": "USA",
+      "home": {
+        "slot": "1I",
+        "position": 1,
+        "group": "I",
+        "team": "Norway"
+      },
+      "away": {
+        "slot": "3CDFGH",
+        "position": 3,
+        "eligibleGroups": "CDFGH",
+        "group": "F",
+        "team": "Sweden"
+      }
+    },
+    {
+      "matchNumber": 78,
+      "round": "Round of 32",
+      "dateUtc": "2026-06-30T17:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "slot": "2E",
+        "position": 2,
+        "group": "E",
+        "team": "Côte d'Ivoire"
+      },
+      "away": {
+        "slot": "2I",
+        "position": 2,
+        "group": "I",
+        "team": "France"
+      }
+    },
+    {
+      "matchNumber": 79,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-01T01:00:00Z",
+      "stadium": "Estadio Azteca",
+      "city": "Mexico City",
+      "country": "Mexico",
+      "home": {
+        "slot": "Mexico",
+        "team": "Mexico",
+        "resolved": true
+      },
+      "away": {
+        "slot": "3CEFHI",
+        "position": 3,
+        "eligibleGroups": "CEFHI",
+        "group": "H",
+        "team": "Cabo Verde"
+      }
+    },
+    {
+      "matchNumber": 80,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-01T16:00:00Z",
+      "stadium": "Mercedes-Benz Stadium",
+      "city": "Atlanta",
+      "country": "USA",
+      "home": {
+        "slot": "1L",
+        "position": 1,
+        "group": "L",
+        "team": "England"
+      },
+      "away": {
+        "slot": "3EHIJK",
+        "position": 3,
+        "eligibleGroups": "EHIJK",
+        "group": "K",
+        "team": "Portugal"
+      }
+    },
+    {
+      "matchNumber": 81,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-02T00:00:00Z",
+      "stadium": "Levi's Stadium",
+      "city": "San Francisco Bay Area (Santa Clara)",
+      "country": "USA",
+      "home": {
+        "slot": "USA",
+        "team": "USA",
+        "resolved": true
+      },
+      "away": {
+        "slot": "3BEFIJ",
+        "position": 3,
+        "eligibleGroups": "BEFIJ",
+        "group": "E",
+        "team": "Ecuador"
+      }
+    },
+    {
+      "matchNumber": 82,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-01T20:00:00Z",
+      "stadium": "Lumen Field",
+      "city": "Seattle",
+      "country": "USA",
+      "home": {
+        "slot": "1G",
+        "position": 1,
+        "group": "G",
+        "team": "Egypt"
+      },
+      "away": {
+        "slot": "3AEHIJ",
+        "position": 3,
+        "eligibleGroups": "AEHIJ",
+        "group": "A",
+        "team": "Czechia"
+      }
+    },
+    {
+      "matchNumber": 83,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-02T23:00:00Z",
+      "stadium": "BMO Field",
+      "city": "Toronto",
+      "country": "Canada",
+      "home": {
+        "slot": "2K",
+        "position": 2,
+        "group": "K",
+        "team": "Congo DR"
+      },
+      "away": {
+        "slot": "2L",
+        "position": 2,
+        "group": "L",
+        "team": "Ghana"
+      }
+    },
+    {
+      "matchNumber": 84,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-02T19:00:00Z",
+      "stadium": "SoFi Stadium",
+      "city": "Los Angeles (Inglewood)",
+      "country": "USA",
+      "home": {
+        "slot": "1H",
+        "position": 1,
+        "group": "H",
+        "team": "Spain"
+      },
+      "away": {
+        "slot": "2J",
+        "position": 2,
+        "group": "J",
+        "team": "Austria"
+      }
+    },
+    {
+      "matchNumber": 85,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-03T03:00:00Z",
+      "stadium": "BC Place",
+      "city": "Vancouver",
+      "country": "Canada",
+      "home": {
+        "slot": "1B",
+        "position": 1,
+        "group": "B",
+        "team": "Canada"
+      },
+      "away": {
+        "slot": "3EFGIJ",
+        "position": 3,
+        "eligibleGroups": "EFGIJ",
+        "group": "G",
+        "team": "Belgium"
+      }
+    },
+    {
+      "matchNumber": 86,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-03T22:00:00Z",
+      "stadium": "Hard Rock Stadium",
+      "city": "Miami",
+      "country": "USA",
+      "home": {
+        "slot": "1J",
+        "position": 1,
+        "group": "J",
+        "team": "Argentina"
+      },
+      "away": {
+        "slot": "2H",
+        "position": 2,
+        "group": "H",
+        "team": "Uruguay"
+      }
+    },
+    {
+      "matchNumber": 87,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-04T01:30:00Z",
+      "stadium": "Arrowhead Stadium",
+      "city": "Kansas City",
+      "country": "USA",
+      "home": {
+        "slot": "1K",
+        "position": 1,
+        "group": "K",
+        "team": "Colombia"
+      },
+      "away": {
+        "slot": "3DEIJL",
+        "position": 3,
+        "eligibleGroups": "DEIJL",
+        "group": "D",
+        "team": "Paraguay"
+      }
+    },
+    {
+      "matchNumber": 88,
+      "round": "Round of 32",
+      "dateUtc": "2026-07-03T18:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "slot": "2D",
+        "position": 2,
+        "group": "D",
+        "team": "Australia"
+      },
+      "away": {
+        "slot": "2G",
+        "position": 2,
+        "group": "G",
+        "team": "IR Iran"
+      }
+    },
+    {
+      "matchNumber": 89,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-04T21:00:00Z",
+      "stadium": "Lincoln Financial Field",
+      "city": "Philadelphia",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 74,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 77,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 90,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-04T17:00:00Z",
+      "stadium": "NRG Stadium",
+      "city": "Houston",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 73,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 75,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 91,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-05T20:00:00Z",
+      "stadium": "MetLife Stadium",
+      "city": "New York/New Jersey (East Rutherford)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 76,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 78,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 92,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-06T00:00:00Z",
+      "stadium": "Estadio Azteca",
+      "city": "Mexico City",
+      "country": "Mexico",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 79,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 80,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 93,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-06T19:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 83,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 84,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 94,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-07T00:00:00Z",
+      "stadium": "Lumen Field",
+      "city": "Seattle",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 81,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 82,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 95,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-07T16:00:00Z",
+      "stadium": "Mercedes-Benz Stadium",
+      "city": "Atlanta",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 86,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 88,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 96,
+      "round": "Round of 16",
+      "dateUtc": "2026-07-07T20:00:00Z",
+      "stadium": "BC Place",
+      "city": "Vancouver",
+      "country": "Canada",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 85,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 87,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 97,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-09T20:00:00Z",
+      "stadium": "Gillette Stadium",
+      "city": "Boston (Foxborough)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 89,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 90,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 98,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-10T19:00:00Z",
+      "stadium": "SoFi Stadium",
+      "city": "Los Angeles (Inglewood)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 93,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 94,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 99,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-11T21:00:00Z",
+      "stadium": "Hard Rock Stadium",
+      "city": "Miami",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 91,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 92,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 100,
+      "round": "Quarter-final",
+      "dateUtc": "2026-07-12T01:00:00Z",
+      "stadium": "Arrowhead Stadium",
+      "city": "Kansas City",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 95,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 96,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 101,
+      "round": "Semi-final",
+      "dateUtc": "2026-07-14T19:00:00Z",
+      "stadium": "AT&T Stadium",
+      "city": "Dallas (Arlington)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 97,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 98,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 102,
+      "round": "Semi-final",
+      "dateUtc": "2026-07-15T19:00:00Z",
+      "stadium": "Mercedes-Benz Stadium",
+      "city": "Atlanta",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 99,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 100,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 103,
+      "round": "Match for third place",
+      "dateUtc": "2026-07-18T21:00:00Z",
+      "stadium": "Hard Rock Stadium",
+      "city": "Miami",
+      "country": "USA",
+      "home": {
+        "sourceType": "loser",
+        "sourceMatch": 101,
+        "team": null
+      },
+      "away": {
+        "sourceType": "loser",
+        "sourceMatch": 102,
+        "team": null
+      }
+    },
+    {
+      "matchNumber": 104,
+      "round": "Final",
+      "dateUtc": "2026-07-19T19:00:00Z",
+      "stadium": "MetLife Stadium",
+      "city": "New York/New Jersey (East Rutherford)",
+      "country": "USA",
+      "home": {
+        "sourceType": "winner",
+        "sourceMatch": 101,
+        "team": null
+      },
+      "away": {
+        "sourceType": "winner",
+        "sourceMatch": 102,
+        "team": null
+      }
+    }
+  ]
+}; // { combination, bracket:[...] }; baked in, refreshed from bracket.json when served
 
 const TZ_LOCAL = 'Europe/Stockholm';
 let tz = TZ_LOCAL;
@@ -1909,7 +2629,7 @@ try { lang = localStorage.getItem('lang') || 'sv'; } catch {}
 const I18N = {
   en: {
     locale: 'en-GB',
-    nav: { list: 'List', calendar: 'Calendar', groups: 'Groups', venues: 'Venues' },
+    nav: { list: 'List', calendar: 'Calendar', groups: 'Groups', venues: 'Venues', bracket: 'Bracket' },
     showLocal: 'Show Stockholm time', showUtc: 'Show UTC',
     filters: 'Filters & teams', hideFilters: 'Hide filters & teams',
     active: n => ` · ${n} active`,
@@ -1928,11 +2648,17 @@ const I18N = {
     weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     subtitle: tzDesc => `All 104 matches, sorted by kick-off time. Times are ${tzDesc}.`,
     localTz: abbr => `Europe/Stockholm (${abbr})`,
-    lastUpdated: 'Results updated'
+    lastUpdated: 'Results updated',
+    thirdPlay: 'Play-off for third place',
+    bracketEmpty: 'Bracket data is not available yet.',
+    bestThirds: 'Best third-placed teams (top 8 advance)',
+    combination: c => `Third-place combination in use: ${c} — 1 of 495`,
+    bracketLive: 'Live bracket',
+    bracketSet: 'Playoff bracket'
   },
   sv: {
     locale: 'sv-SE',
-    nav: { list: 'Lista', calendar: 'Kalender', groups: 'Grupper', venues: 'Arenor' },
+    nav: { list: 'Lista', calendar: 'Kalender', groups: 'Grupper', venues: 'Arenor', bracket: 'Slutspel' },
     showLocal: 'Visa svensk tid', showUtc: 'Visa UTC',
     filters: 'Filter & lag', hideFilters: 'Dölj filter & lag',
     active: n => ` · ${n} aktiva`,
@@ -1951,7 +2677,13 @@ const I18N = {
     weekdays: ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'],
     subtitle: tzDesc => `Alla 104 matcher, sorterade efter avsparkstid. Tiderna visas i ${tzDesc}.`,
     localTz: abbr => `svensk tid (${abbr})`,
-    lastUpdated: 'Resultaten uppdaterade'
+    lastUpdated: 'Resultaten uppdaterade',
+    thirdPlay: 'Match om tredjepris',
+    bracketEmpty: 'Slutspelsträdet är inte tillgängligt ännu.',
+    bestThirds: 'Bästa grupptreor (8 bästa går vidare)',
+    combination: c => `Grupptrea-kombination som används: ${c} — 1 av 495`,
+    bracketLive: 'Live slutspel',
+    bracketSet: 'Slutspel'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -2239,6 +2971,18 @@ function computeGroups() {
   }));
 }
 
+// The 12 third-placed teams ranked best-first (points, goal difference, goals for, group);
+// the top 8 fill the round-of-32 third-place slots. Mirrors the updater's bestThirds().
+function bestThirds() {
+  const thirds = [];
+  for (const grp of computeGroups()) {
+    const r = grp.rows[2];
+    if (r) thirds.push({ group: grp.name.replace(/^Group\s*/i, ''), team: r.team, pts: r.pts, gd: r.gf - r.ga, gf: r.gf });
+  }
+  thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.group.localeCompare(b.group));
+  return thirds.map((t, i) => ({ rank: i + 1, qualifies: i < 8, ...t }));
+}
+
 function renderTeamsBar() {
   const bar = document.getElementById('teams-bar');
   bar.innerHTML = '';
@@ -2396,6 +3140,184 @@ function renderGroups() {
   }
 }
 
+// ---- Bracket (knockout tree) view ----
+// Columns by FIFA match number, top-to-bottom within each column. Left side flows
+// right (R32→R16→QF), right side flows left; the semifinals, final and third-place
+// play-off form the centre cluster. Matches the published bracket topology.
+const BJ_LEFT = [
+  [74, 77, 73, 75, 83, 84, 81, 82], // Round of 32
+  [89, 90, 93, 94],                 // Round of 16
+  [97, 98],                         // Quarter-final
+];
+const BJ_RIGHT = [
+  [99, 100],                        // Quarter-final
+  [91, 92, 95, 96],                 // Round of 16
+  [76, 78, 79, 80, 86, 88, 85, 87], // Round of 32
+];
+
+// A slot string that is a placeholder, not a real team (1A / 2C / 3ABCDF / W74 / RU101 / L101 / TBA)
+const bjPlaceholder = s => !s || /^[123][A-L]+$/.test(s) || /^(W|L|RU)\d+$/.test(s) || s === 'To be announced';
+
+function renderBracket() {
+  const el = document.getElementById('bracket');
+  if (!BRACKET || !Array.isArray(BRACKET.bracket)) {
+    el.innerHTML = `<p class="bj-empty">${L.bracketEmpty}</p>`;
+    return;
+  }
+  const byBracket = new Map(BRACKET.bracket.map(b => [b.matchNumber, b]));
+  const byMatch = new Map(MATCHES.map(m => [m.matchNumber, m]));
+  const dateFmt = new Intl.DateTimeFormat(L.locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: tz });
+
+  // Groups whose every match has been played → final positions are settled.
+  const completed = new Set(); const groupIds = new Set();
+  { const byG = new Map();
+    for (const mm of MATCHES) {
+      if (!mm.group) continue;
+      const g = mm.group.replace(/^Group\s*/i, '');
+      groupIds.add(g);
+      (byG.get(g) ?? byG.set(g, []).get(g)).push(mm);
+    }
+    for (const [g, ms] of byG) if (ms.every(x => x.homeScore !== null && x.awayScore !== null)) completed.add(g);
+  }
+  const allGroupsDone = groupIds.size > 0 && completed.size === groupIds.size;
+
+  // A slot is "decided" (not just the current projection) once its group is finished
+  // (1st/2nd), once every group is finished so the third-place allocation is fixed (3rd),
+  // once the feed has officially placed the team, or once the match has been played.
+  const isDecided = (resolved, played) => {
+    if (played) return true;
+    if (!resolved || !resolved.team) return false;
+    if (resolved.resolved) return true;
+    if (resolved.position === 1 || resolved.position === 2) return completed.has(resolved.group);
+    if (resolved.position === 3) return allGroupsDone;
+    return false;
+  };
+
+  // team -> seeding code (1E / 2C / 3A), from the current group standings — used to label
+  // feed-resolved slots that carry no position/group of their own (e.g. the host nations).
+  const seedOf = new Map();
+  for (const grp of computeGroups()) {
+    const letter = grp.name.replace(/^Group\s*/i, '');
+    grp.rows.forEach((r, i) => { if (i < 3) seedOf.set(r.team, (i + 1) + letter); });
+  }
+  // Round-of-32 seeding code for one side: the slot's own position+group, else the team's
+  // current standing. (1st/2nd/3rd of a group, e.g. winner of E -> 1E, third of A -> 3A.)
+  const seedCode = (resolved, team) => {
+    if (resolved && [1, 2, 3].includes(resolved.position) && resolved.group) return resolved.position + resolved.group;
+    if (team && seedOf.has(team)) return seedOf.get(team);
+    return '';
+  };
+
+  // Resolve one side of a tie to { html, real, ph } — a real team gets its flag + code,
+  // an unresolved slot gets the compact placeholder code (1A, 3ABCDF, W74, RU101).
+  const side = (resolved, playedName, played) => {
+    const team = (played && playedName) || (resolved && resolved.team) || null;
+    if (team && !bjPlaceholder(team)) {
+      const code = TEAM_CODE[team] || disp(team);
+      const flag = TEAM_CODE[team] ? `<img class="bj-flag" src="img/flags/${TEAM_CODE[team].toLowerCase()}.svg" alt="" loading="lazy">` : '<span class="bj-flag"></span>';
+      return { flag, html: code, real: team, ph: false, title: disp(team) };
+    }
+    let code = L.tbd;
+    if (resolved) {
+      if (resolved.slot && !/to be announced/i.test(resolved.slot)) code = resolved.slot;
+      else if (resolved.sourceType === 'winner') code = 'W' + resolved.sourceMatch;
+      else if (resolved.sourceType === 'loser') code = 'RU' + resolved.sourceMatch;
+    }
+    return { flag: '<span class="bj-flag"></span>', html: code, real: null, ph: true, title: '' };
+  };
+
+  // One match card. numPos places the "Mxx" label: 'l' left, 'r' right, 'b' below.
+  const card = (n, numPos) => {
+    const b = byBracket.get(n), m = byMatch.get(n);
+    if (!b && !m) return '';
+    const played = m && m.homeScore !== null && m.awayScore !== null;
+    const home = side(b && b.home, m && m.homeTeam, played);
+    const away = side(b && b.away, m && m.awayTeam, played);
+    const dt = (b && b.dateUtc) || (m && m.dateUtc);
+    const hWin = played && m.homeScore > m.awayScore;
+    const aWin = played && m.awayScore > m.homeScore;
+    const stadium = (b && b.stadium) || (m && m.stadium);
+    const city = (b && b.city) || (m && m.city);
+    const country = (b && b.country) || (m && m.country);
+    const cflag = country && TEAM_CODE[country]
+      ? `<img class="bj-cflag" src="img/flags/${TEAM_CODE[country].toLowerCase()}.svg" alt="${disp(country)}" title="${disp(country)}">`
+      : '';
+    const venue = stadium
+      ? `<div class="bj-venue">${cflag}<span class="bj-venue-text" title="${stadium}, ${city}, ${disp(country)}"><span>${stadium}</span><span>${city}</span></span></div>`
+      : '';
+    // Show the group+position seed code in the round of 32 (matches 73–88) for known teams;
+    // unresolved slots already render the code as their name, so don't double it up.
+    const r32 = n <= 88;
+    const hSeed = r32 && !home.ph ? seedCode(b && b.home, home.real) : '';
+    const aSeed = r32 && !away.ph ? seedCode(b && b.away, away.real) : '';
+    const row = (s, score, win, decided, seed) => `<div class="bj-row${win ? ' bj-win' : ''}${decided ? ' bj-decided' : ''}">${s.flag}` +
+      `<span class="bj-name${s.ph ? ' placeholder' : ''}"${s.title ? ` title="${s.title}"` : ''}>${s.html}</span>` +
+      (seed ? `<span class="bj-seed-code">${seed}</span>` : '') +
+      `<span class="bj-score">${score}</span></div>`;
+    return `<div class="bj-card num-${numPos}">
+      <div class="bj-when"><span>${dt ? dateFmt.format(new Date(dt)) : ''}</span><span>${dt ? partsFor(dt).time : ''}</span></div>
+      <div class="bj-match">
+        ${row(home, played ? m.homeScore : '', hWin, isDecided(b && b.home, played), hSeed)}
+        ${row(away, played ? m.awayScore : '', aWin, isDecided(b && b.away, played), aSeed)}
+      </div>
+      ${venue}
+      <span class="bj-num">M${n}</span>
+    </div>`;
+  };
+
+  const column = (nums, head, numPos) => `<div class="bj-col">
+    <div class="bj-col-head">${head}</div>
+    <div class="bj-seeds">${nums.map(n => `<div class="bj-seed">${card(n, numPos)}</div>`).join('')}</div>
+  </div>`;
+
+  const leftHeads = [L.stages[0], L.stages[1], L.stages[2]];
+  const rightHeads = [L.stages[2], L.stages[1], L.stages[0]];
+  const leftCols = BJ_LEFT.map((nums, i) => column(nums, leftHeads[i], 'l')).join('');
+  const rightCols = BJ_RIGHT.map((nums, i) => column(nums, rightHeads[i], 'r')).join('');
+
+  const centre = `<div class="bj-center">
+    <div class="bj-final">
+      <div class="bj-round-head">${L.stages[5]}</div>
+      ${card(104, 'b')}
+    </div>
+    <div class="bj-sf-row">
+      <div class="bj-sf bj-sf-l"><div class="bj-round-head">${L.stages[3]}</div>${card(101, 'l')}</div>
+      <div class="bj-sf bj-sf-r"><div class="bj-round-head">${L.stages[3]}</div>${card(102, 'r')}</div>
+    </div>
+    <div class="bj-third">
+      <div class="bj-round-head">${L.thirdPlay}</div>
+      ${card(103, 'b')}
+    </div>
+  </div>`;
+
+  // Best third-placed teams — shown above the tree, but only while the group stage is still
+  // deciding teams. Once every team is set, the bracket itself shows the thirds, so hide it.
+  let thirdsPanel = '';
+  if (!allGroupsDone) {
+    const thirdItem = t => `<div class="bj-th-item${t.qualifies ? ' q' : ''}">
+      <span class="bj-th-rank">${t.rank}</span>
+      ${TEAM_CODE[t.team] ? `<img class="bj-cflag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : '<span class="bj-cflag"></span>'}
+      <span class="bj-th-team">${disp(t.team)}</span>
+      <span class="bj-th-grp">${dispGroup('Group ' + t.group)}</span>
+      <span class="bj-th-gd">${t.gd > 0 ? '+' + t.gd : t.gd < 0 ? t.gd : '±0'}</span>
+      <span class="bj-th-pts">${t.pts}&nbsp;${L.th[5]}</span>
+    </div>`;
+    const thirds = bestThirds();
+    const combo = thirds.filter(t => t.qualifies).map(t => t.group).sort().join('');
+    thirdsPanel = `<div class="bj-thirds">
+      <h3 class="bj-thirds-title">${L.bestThirds}</h3>
+      <div class="bj-thirds-grid">${thirds.map(thirdItem).join('')}</div>
+      ${combo.length === 8 ? `<div class="bj-combo">${L.combination(combo.split('').join('·'))}</div>` : ''}
+    </div>`;
+  }
+
+  el.innerHTML = thirdsPanel + `<div class="bj-scroll"><div class="bj">
+    <div class="bj-side bj-side-l">${leftCols}</div>
+    ${centre}
+    <div class="bj-side bj-side-r">${rightCols}</div>
+  </div></div>`;
+}
+
 // ---- Mobile filters toggle ----
 const btnFilters = document.getElementById('btn-filters');
 btnFilters.addEventListener('click', () => {
@@ -2414,12 +3336,17 @@ const btnTz = document.getElementById('btn-tz');
 const subtitle = document.getElementById('subtitle');
 function renderAll() {
   for (const v of VIEWS) document.getElementById('btn-' + v).textContent = L.nav[v];
+  // "Live bracket" while the group stage is still deciding teams, "Playoff bracket" once it's set
+  const groupStage = MATCHES.filter(m => m.matchNumber <= 72);
+  const teamsDecided = groupStage.length > 0 && groupStage.every(m => m.homeScore !== null && m.awayScore !== null);
+  document.getElementById('btn-bracket').textContent = teamsDecided ? L.bracketSet : L.bracketLive;
   renderTeamsBar();
   updateFiltersBtn();
   renderList();
   renderCalendar();
   renderGroups();
   renderVenues();
+  renderBracket();
   btnTz.textContent = tz === 'UTC' ? L.showLocal : L.showUtc;
   subtitle.textContent = L.subtitle(tz === 'UTC' ? 'UTC' : L.localTz(tzAbbr()));
   updateStamp();
@@ -2438,7 +3365,7 @@ function updateStamp() {
 btnTz.addEventListener('click', () => { tz = tz === 'UTC' ? TZ_LOCAL : 'UTC'; renderAll(); });
 
 // ---- View toggle ----
-const VIEWS = ['list', 'calendar', 'groups', 'venues'];
+const VIEWS = ['list', 'calendar', 'groups', 'venues', 'bracket'];
 for (const v of VIEWS) {
   document.getElementById('btn-' + v).addEventListener('click', () => showView(v));
 }
@@ -2447,6 +3374,8 @@ function showView(view) {
     document.getElementById(v).hidden = v !== view;
     document.getElementById('btn-' + v).classList.toggle('active', v === view);
   }
+  // The bracket shows the whole tree — no filtering — so hide the filter sidebar for it
+  document.body.classList.toggle('bracket-view', view === 'bracket');
 }
 
 // Group tags in the list view jump to that group's card in the groups view
@@ -2481,6 +3410,17 @@ showView('groups');
 // pick those up on load and every 5 minutes. Fails silently on file:// or offline,
 // where the baked-in data above is all there is.
 async function refreshData() {
+  // Bracket is projected from the same results, so refresh it on the same cycle.
+  fetch('bracket.json', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && Array.isArray(data.bracket) && JSON.stringify(data) !== JSON.stringify(BRACKET)) {
+        BRACKET = data;
+        renderBracket();
+      }
+    })
+    .catch(() => { /* keep current bracket (file:// or offline) */ });
+
   try {
     const res = await fetch('matches.json', { cache: 'no-store' });
     if (!res.ok) return;
