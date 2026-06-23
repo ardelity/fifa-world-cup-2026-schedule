@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0e1420">
 <title>FIFA World Cup 2026 — All Matches</title>
+<!-- Google Analytics (GA4) — loaded only on the public production host so local/file:// and
+     the internal hostname don't send hits. Mirrors the standard gtag.js snippet. -->
+<script>
+  if (location.hostname === 'dev.ardelity.se') {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', '__GA_ID__');
+    var ga = document.createElement('script');
+    ga.async = true;
+    ga.src = 'https://www.googletagmanager.com/gtag/js?id=__GA_ID__';
+    document.head.appendChild(ga);
+  }
+</script>
 <style>
   :root {
     --bg: #0e1420;
