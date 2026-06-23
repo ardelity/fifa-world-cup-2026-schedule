@@ -111,6 +111,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .group-card .t .flag { width: 17px; height: 12px; margin-right: 7px; vertical-align: -1px; }
   .group-card td.pts { font-weight: 700; }
   .group-card tbody tr:nth-child(2) td { border-bottom: 1px dashed var(--line); }
   .group-card { margin-bottom: 0; }
@@ -241,6 +242,10 @@
   .team.home { text-align: right; }
   .team.away { text-align: left; }
   .team.placeholder { color: var(--muted); font-style: italic; font-size: .9rem; }
+  /* Country flag shown next to a team name (list match rows + group tables) */
+  .flag { display: inline-block; width: 20px; height: 14px; border: 1px solid var(--line); border-radius: 2px; vertical-align: -2px; object-fit: cover; }
+  .team.home .flag { margin-left: 8px; }
+  .team.away .flag { margin-right: 8px; }
   .score {
     font-weight: 700;
     font-variant-numeric: tabular-nums;
@@ -2768,6 +2773,11 @@ function toggleTeam(team) {
 // Team name, colored if selected
 const teamSpan = name => isSel(name) ? `<span style="color:${colorOf(name)}">${disp(name)}</span>` : disp(name);
 
+// Flag image for a real country; empty for placeholder slots (1A / Winner of … / TBD)
+const flagImg = name => TEAM_CODE[name]
+  ? `<img class="flag" src="img/flags/${TEAM_CODE[name].toLowerCase()}.svg" alt="" loading="lazy">`
+  : '';
+
 function stageOf(n) {
   if (n <= 72) return null;            // group stage: show the group instead
   if (n <= 88) return L.stages[0];
@@ -2845,9 +2855,9 @@ function renderList() {
       + (isSel(match.homeTeam) || isSel(match.awayTeam) ? ' sel' : '');
     card.innerHTML = `
       <div class="time">${partsFor(match.dateUtc).time}<small>${abbr}</small></div>
-      <div class="team home${home.ph ? ' placeholder' : ''}${isSel(match.homeTeam) ? ' sel' : ''}">${isSel(match.homeTeam) ? teamSpan(match.homeTeam) : home.text}</div>
+      <div class="team home${home.ph ? ' placeholder' : ''}${isSel(match.homeTeam) ? ' sel' : ''}">${isSel(match.homeTeam) ? teamSpan(match.homeTeam) : home.text}${flagImg(match.homeTeam)}</div>
       <div class="score${played ? '' : ' vs'}">${played ? match.homeScore + ' – ' + match.awayScore : 'vs'}</div>
-      <div class="team away${away.ph ? ' placeholder' : ''}${isSel(match.awayTeam) ? ' sel' : ''}">${isSel(match.awayTeam) ? teamSpan(match.awayTeam) : away.text}</div>
+      <div class="team away${away.ph ? ' placeholder' : ''}${isSel(match.awayTeam) ? ' sel' : ''}">${flagImg(match.awayTeam)}${isSel(match.awayTeam) ? teamSpan(match.awayTeam) : away.text}</div>
       <div class="meta meta-row"><span>${metaParts.join(' · ')}</span><span class="meta-bc">${bcBadge(match)}</span></div>
       <div class="meta meta-loc">${match.stadium}, ${match.city}, ${disp(match.country)}</div>`;
     list.appendChild(card);
@@ -3128,7 +3138,7 @@ function renderGroups() {
     const rows = group.rows.map(r => {
       const gd = r.gf - r.ga;
       return `<tr${isSel(r.team) ? ' class="sel"' : ''}>
-        <td class="t" title="${disp(r.team)}">${teamSpan(r.team)}</td>
+        <td class="t" title="${disp(r.team)}">${flagImg(r.team)}${teamSpan(r.team)}</td>
         <td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
         <td>${gd > 0 ? '+' + gd : gd}</td><td class="pts">${r.pts}</td>
       </tr>`;
