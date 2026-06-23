@@ -447,6 +447,9 @@
   .bj-whatif-label { font-size: .8rem; color: var(--muted); }
   .bj-whatif-select { background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 7px; height: 30px; padding: 0 8px; font-size: .82rem; cursor: pointer; max-width: 240px; }
   .bj-whatif-select:hover { border-color: var(--accent); }
+  .bj-locked { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .bj-locked-label { font-size: .72rem; color: var(--muted); }
+  .bj-lock { font-size: .7rem; font-weight: 700; color: #04130a; background: rgba(95, 217, 143, .9); border-radius: 4px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
   .bj-scroll { padding: 4px 0 16px; }
   /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
   .bj { display: flex; align-items: stretch; width: 100%; }
@@ -667,7 +670,9 @@ const I18N = {
     frNote: 'FR — order decided by FIFA ranking (final tiebreaker).',
     whatIf: 'What-if combination:',
     whatIfActual: 'Actual standings',
-    whatIfActualTag: '(actual)'
+    whatIfActualTag: '(actual)',
+    lockedIn: 'Locked in:',
+    lockedTitle: 'Clinched a top-8 third — in every still-possible combination'
   },
   sv: {
     locale: 'sv-SE',
@@ -710,7 +715,9 @@ const I18N = {
     frNote: 'FR — placering avgjord på Fifa-ranking (sista särskiljning).',
     whatIf: 'Tänk om-kombination:',
     whatIfActual: 'Verkliga placeringar',
-    whatIfActualTag: '(verklig)'
+    whatIfActualTag: '(verklig)',
+    lockedIn: 'Klara:',
+    lockedTitle: 'Säkrad topp-8-trea — med i alla fortfarande möjliga kombinationer'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -1454,12 +1461,16 @@ function renderBracket() {
   </div>` : '';
 
   // What-if combination selector (when the allocation table is loaded).
+  // "Locked" groups: their third has clinched a top-8 spot, so they appear in every still-possible
+  // combination (same green-clinched test as the thirds panel). Shown as badges by the selector.
+  const lockedGroups = ALLOCATIONS ? bestThirds(viewMatches).filter(t => t.secured).map(t => t.group).sort() : [];
   const whatIfCtl = ALLOCATIONS ? `<div class="bj-whatif">
     <span class="bj-whatif-label">${L.whatIf}</span>
     <select class="bj-whatif-select">
       <option value=""${!whatIfCombo ? ' selected' : ''}>${L.whatIfActual}</option>
       ${Object.keys(ALLOCATIONS).sort().map(c => `<option value="${c}"${c === whatIfCombo ? ' selected' : ''}>${c.split('').join('·')}${c === actualCombo ? ' ' + L.whatIfActualTag : ''}</option>`).join('')}
     </select>
+    ${lockedGroups.length ? `<span class="bj-locked"><span class="bj-locked-label">${L.lockedIn}</span>${lockedGroups.map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}</span>`).join('')}</span>` : ''}
   </div>` : '';
 
   el.innerHTML = scrubBar + whatIfCtl + thirdsPanel + `<div class="bj-scroll"><div class="bj">
