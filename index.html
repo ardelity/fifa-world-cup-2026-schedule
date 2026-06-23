@@ -3572,7 +3572,7 @@ showView('bracket');
 // ---- Analytics consent (production host only, opt-in) ----
 // GA is loaded only after the visitor accepts, so no analytics cookies are set otherwise.
 // The choice is remembered in localStorage. showView() fires per-view page_views once gtag exists.
-const GA_ID = '__GA_ID__', GA_HOST = 'dev.ardelity.se';
+const GA_ID = '__GA_ID__', GA_HOST = 'dev.ardelity.se'; // GA_ID injected at image build time (kept out of the repo)
 let gaLoaded = false;
 function loadGA() {
   if (gaLoaded) return;
@@ -3618,7 +3618,7 @@ function showConsentBanner() {
   bar.querySelector('.cc-decline').addEventListener('click', () => setConsent('denied'));
 }
 function initConsent() {
-  if (location.hostname !== GA_HOST) return; // analytics + consent UI only in production
+  if (location.hostname !== GA_HOST || !GA_ID.startsWith('G-')) return; // prod only, and only if an ID was injected
   // Persistent way to review/withdraw the choice (GDPR: withdrawing must be as easy as giving).
   const link = document.createElement('button');
   link.id = 'cookie-link';
