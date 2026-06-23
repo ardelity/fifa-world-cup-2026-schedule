@@ -502,6 +502,10 @@
   .bj-th-item.q { border-color: var(--hl-border); background: var(--hl-bg); }
   /* Clinched a top-8 third spot — same green as a "decided" bracket slot, overrides the amber projected shading */
   .bj-th-item.s { border-color: var(--accent); background: rgba(95, 217, 143, .18); }
+  /* What-if cues: actual current top 8 (left bar), and the intersection with the combination (green + check) */
+  .bj-th-item.t8 { box-shadow: inset 3px 0 0 var(--accent); }
+  .bj-th-item.match { border-color: var(--accent); background: rgba(95, 217, 143, .22); opacity: 1; }
+  .bj-th-match { flex: 0 0 auto; color: var(--accent); font-weight: 700; }
   .bj-th-item:not(.q) { opacity: .5; }
   .bj-th-rank { flex: 0 0 auto; width: 16px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
   .bj-th-team { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2755,7 +2759,9 @@ const I18N = {
     lockedIn: 'Locked in:',
     lockedTitle: 'Clinched a top-8 third — in every still-possible combination',
     pinHint: 'Click to require/release this group in the what-if combinations',
-    pinTitle: 'Pinned — click to release'
+    pinTitle: 'Pinned — click to release',
+    matchTitle: 'In the current top 8 and this combination',
+    whatIfLegend: '✓ current top 8 & in combination · left bar = current top 8 · shaded = in combination'
   },
   sv: {
     locale: 'sv-SE',
@@ -2802,7 +2808,9 @@ const I18N = {
     lockedIn: 'Klara:',
     lockedTitle: 'Säkrad topp-8-trea — med i alla fortfarande möjliga kombinationer',
     pinHint: 'Klicka för att kräva/släppa gruppen i tänk om-kombinationerna',
-    pinTitle: 'Fäst — klicka för att ta bort'
+    pinTitle: 'Fäst — klicka för att ta bort',
+    matchTitle: 'Bland nuvarande topp-8 och denna kombination',
+    whatIfLegend: '✓ nuvarande topp-8 & i kombinationen · vänster kant = nuvarande topp-8 · skuggad = i kombinationen'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -3498,18 +3506,26 @@ function renderBracket() {
   // deciding teams. Once every team is set, the bracket itself shows the thirds, so hide it.
   let thirdsPanel = '';
   if (!allGroupsDone) {
-    const thirdItem = t => `<div class="bj-th-item${t.qualifies ? ' q' : ''}${t.secured ? ' s' : ''}${pinnedGroups.has(t.group) ? ' pinned' : ''}" data-group="${t.group}" title="${L.pinHint}">
+    // In what-if mode, "matched" = this third is both in the chosen combination (qualifies) and in
+    // the actual current top 8 (rank <= 8) — i.e. it would go through either way.
+    const thirdItem = t => {
+      const top8 = wif && t.rank <= 8;                  // actual current top 8 (panel is sorted by real rank)
+      const matched = top8 && t.qualifies;              // in the actual top 8 AND the chosen combination
+      return `<div class="bj-th-item${t.qualifies ? ' q' : ''}${t.secured ? ' s' : ''}${top8 ? ' t8' : ''}${matched ? ' match' : ''}${pinnedGroups.has(t.group) ? ' pinned' : ''}" data-group="${t.group}" title="${L.pinHint}">
       <span class="bj-th-rank">${t.rank}</span>
       ${TEAM_CODE[t.team] ? `<img class="bj-cflag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : '<span class="bj-cflag"></span>'}
       <span class="bj-th-team">${disp(t.team)}</span>
+      ${matched ? `<span class="bj-th-match" title="${L.matchTitle}">✓</span>` : ''}
       ${t.tb === 'fp' ? `<span class="bj-th-fp" title="${L.fpTitle}: ${t.fp}">${L.fpTag}</span>`
         : t.tb === 'rank' ? `<span class="bj-th-fp" title="${L.frTitle}: ${t.rk}">${L.frTag}</span>` : ''}
       <span class="bj-th-grp">${dispGroup('Group ' + t.group)}</span>
       <span class="bj-th-gd">${t.gd > 0 ? '+' + t.gd : t.gd < 0 ? t.gd : '±0'}</span>
       <span class="bj-th-pts">${t.pts}&nbsp;${L.th[5]}</span>
     </div>`;
+    };
     const thirds = bestThirds(viewMatches, wif ? new Set(wif.split('')) : null);
     const fpNotes = [];
+    if (wif) fpNotes.push(L.whatIfLegend);
     if (thirds.some(t => t.tb === 'fp')) fpNotes.push(L.fpNote);
     if (thirds.some(t => t.tb === 'rank')) fpNotes.push(L.frNote);
     thirdsPanel = `<div class="bj-thirds">
