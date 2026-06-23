@@ -13,6 +13,17 @@ const THIRDS_FILE = process.env.THIRDS_FILE || OUT_FILE.replace(/matches\.json$/
 const BRACKET_FILE = process.env.BRACKET_FILE || OUT_FILE.replace(/matches\.json$/, 'bracket.json');
 // Bracket as it would have looked after each played match — powers the site's game-by-game scrubber.
 const HISTORY_FILE = process.env.HISTORY_FILE || OUT_FILE.replace(/matches\.json$/, 'bracket-history.json');
+// Fair-play (disciplinary) points per team, scraped from Transfermarkt's fairness table only
+// when a new match result arrives. Used as the third-place tiebreaker after goals scored.
+const FAIRPLAY_FILE = process.env.FAIRPLAY_FILE || OUT_FILE.replace(/matches\.json$/, 'fairplay.json');
+const FAIRPLAY_URL = process.env.FAIRPLAY_URL || 'https://www.transfermarkt.co.uk/world-cup/fairnesstabelle/pokalwettbewerb/FIWC/saison_id/2025/plus/1';
+// Transfermarkt's team spellings -> our feed's names.
+const FAIRPLAY_NAME = {
+  'Bosnia-Herzegovina': 'Bosnia and Herzegovina', 'Cape Verde': 'Cabo Verde',
+  'Democratic Republic of the Congo': 'Congo DR', 'Iran': 'IR Iran',
+  'Ivory Coast': "Côte d'Ivoire", 'South Korea': 'Korea Republic',
+  'Turkiye': 'Türkiye', 'United States': 'USA',
+};
 const INTERVAL_MS = (parseInt(process.env.INTERVAL_SECONDS, 10) || 900) * 1000;
 // The tournament ends with the final on 2026-07-19; results are final after that. Stop
 // hitting the feed once the 21st has passed — further requests are pointless. ISO date,
@@ -249,16 +260,18 @@ function standingsByGroup(matches) {
   return standings;
 }
 
-// One third-placed team per group, ranked best first by 1) points, 2) goal
-// difference, 3) goals scored. The eight best qualify; their group letters, sorted
-// alphabetically (e.g. "ABDEFGJK"), are the key FIFA uses to set the round-of-32 bracket.
-function bestThirds(standings) {
+// One third-placed team per group, ranked best first by 1) points, 2) goal difference,
+// 3) goals scored, 4) fair-play points (fewer is better), then group letter. The eight best
+// qualify; their group letters, sorted alphabetically (e.g. "ABDEFGJK"), key the round-of-32
+// bracket. `fairPlay` is an optional { team: points } map; omitted -> fair play not applied.
+function bestThirds(standings, fairPlay) {
   let thirds = [];
   for (const [group, ranked] of standings) {
     const third = ranked[2];
     if (third) thirds.push({ group, ...third });
   }
-  thirds.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || a.group.localeCompare(b.group));
+  const fp = t => (fairPlay && fairPlay[t.team]) ?? 0;
+  thirds.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || fp(a) - fp(b) || a.group.localeCompare(b.group));
   thirds = thirds.map((t, i) => ({ rank: i + 1, qualifies: i < 8, ...t }));
   const qualifiedGroups = thirds
     .filter(t => t.qualifies)
@@ -344,6 +357,38 @@ function writeIfChanged(file, json, label) {
   return true;
 }
 
+// Scrape Transfermarkt's fairness table -> { team: fairPlayPoints } (yellow 1, second yellow 3,
+// red 4). Returns null on any failure so the caller keeps the previous data — this is the only
+// external dependency beyond the fixture feed and must never break the core pipeline.
+async function fetchFairPlay() {
+  try {
+    const res = await fetch(FAIRPLAY_URL, { headers: { 'User-Agent': 'wc2026-site-updater' }, signal: AbortSignal.timeout(30000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const html = await res.text();
+    const body = html.split('class="items"')[1]?.split('<tbody>')[1]?.split('</tbody>')[0];
+    if (!body) throw new Error('fairness table not found');
+    const points = {};
+    for (const row of body.split(/<tr[ >]/).slice(1)) {
+      const name = (row.match(/class="hauptlink no-border-links"><a title="([^"]+)"/) || [])[1];
+      if (!name) continue;
+      // cells: [rank, matches, yellow, yellow-red, red, ...]
+      const nums = [...row.matchAll(/<td class="zentriert[^"]*"[^>]*>(?:<a[^>]*>)?\s*(-?\d+)\s*(?:<\/a>)?<\/td>/g)].map(m => +m[1]);
+      if (nums.length < 5) continue;
+      points[FAIRPLAY_NAME[name] || name] = nums[2] + 3 * nums[3] + 4 * nums[4];
+    }
+    const n = Object.keys(points).length;
+    if (n < 24) throw new Error(`only ${n} teams parsed`);
+    console.log(`${new Date().toISOString()} fair play fetched (${n} teams)`);
+    return points;
+  } catch (err) {
+    console.error(`${new Date().toISOString()} fair-play fetch failed (keeping previous): ${err.message}`);
+    return null;
+  }
+}
+function readFairPlay() {
+  try { return JSON.parse(readFileSync(FAIRPLAY_FILE, 'utf8')); } catch { return null; }
+}
+
 async function refresh() {
   const res = await fetch(FEED_URL, { headers: { 'User-Agent': 'wc2026-site-updater' }, signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error(`Feed responded HTTP ${res.status}`);
@@ -354,8 +399,21 @@ async function refresh() {
   const played = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
   writeIfChanged(OUT_FILE, JSON.stringify(matches, null, 2), `${matches.length} matches, ${played} played`);
 
+  // Fair play only changes when matches are played, so re-scrape Transfermarkt only when the
+  // played count has grown since the stored table was built; otherwise reuse it.
+  let fairPlay = readFairPlay();
+  if (!fairPlay || played > (fairPlay.played ?? -1)) {
+    const points = await fetchFairPlay();
+    if (points) {
+      fairPlay = { played, points };
+      writeIfChanged(FAIRPLAY_FILE, JSON.stringify(fairPlay), `fair play (${Object.keys(points).length} teams, after ${played} games)`);
+    }
+  } else {
+    console.log(`${new Date().toISOString()} fair play unchanged (no new match since ${fairPlay.played} games)`);
+  }
+
   const standings = standingsByGroup(matches);
-  const thirds = bestThirds(standings);
+  const thirds = bestThirds(standings, fairPlay && fairPlay.points);
   writeIfChanged(THIRDS_FILE, JSON.stringify(thirds, null, 2), `best thirds: ${thirds.qualifiedGroups || '(none yet)'}`);
 
   const bracket = buildBracket(matches, standings, thirds.qualifiedGroups);
