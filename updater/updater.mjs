@@ -12,6 +12,10 @@ const THIRDS_FILE = process.env.THIRDS_FILE || OUT_FILE.replace(/matches\.json$/
 // Round-of-32 bracket projected from the current standings.
 const BRACKET_FILE = process.env.BRACKET_FILE || OUT_FILE.replace(/matches\.json$/, 'bracket.json');
 const INTERVAL_MS = (parseInt(process.env.INTERVAL_SECONDS, 10) || 900) * 1000;
+// The tournament ends with the final on 2026-07-19; results are final after that. Stop
+// hitting the feed once the 21st has passed — further requests are pointless. ISO date,
+// overridable via STOP_AFTER. The last polled instant is the end of 2026-07-21 (UTC).
+const STOP_AFTER = new Date(process.env.STOP_AFTER || '2026-07-21T23:59:59Z');
 
 // FIFA's Annex C table: for each of the 495 combinations of the eight qualifying
 // third-placed groups (key = the 8 group letters sorted), which group's third goes
@@ -334,7 +338,13 @@ async function refresh() {
   writeIfChanged(BRACKET_FILE, JSON.stringify(bracket, null, 2), `knockout bracket (${bracket.bracket.length} matches, thirds: ${thirds.qualifiedGroups || 'pending'})`);
 }
 
+let timer = null;
 async function tick() {
+  if (new Date() > STOP_AFTER) {
+    console.log(`${new Date().toISOString()} past ${STOP_AFTER.toISOString()} — tournament complete, no further updates`);
+    if (timer) clearInterval(timer);
+    return;
+  }
   try {
     await refresh();
   } catch (err) {
@@ -342,7 +352,7 @@ async function tick() {
   }
 }
 
-console.log(`wc2026 updater: ${FEED_URL} -> ${OUT_FILE} every ${INTERVAL_MS / 1000}s`);
+console.log(`wc2026 updater: ${FEED_URL} -> ${OUT_FILE} every ${INTERVAL_MS / 1000}s (until ${STOP_AFTER.toISOString()})`);
 await tick();
 if (process.env.RUN_ONCE) process.exit(0);
-setInterval(tick, INTERVAL_MS);
+if (new Date() <= STOP_AFTER) timer = setInterval(tick, INTERVAL_MS);
