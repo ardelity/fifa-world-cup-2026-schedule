@@ -421,8 +421,10 @@
   #bracket[hidden] { display: none; }
   /* The bracket spans the full width and applies no filtering — hide the filter sidebar */
   body.bracket-view #teams-bar,
-  body.bracket-view #subtitle,
   body.bracket-view #btn-filters { display: none; }
+  /* The timezone subtitle is only relevant to the chronological list — hide it elsewhere */
+  #subtitle { display: none; }
+  body[data-view="list"] #subtitle { display: block; }
   .bj-empty { color: var(--muted); text-align: center; padding: 40px 12px; }
   /* Game-by-game scrubber */
   .bj-scrub { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 auto 14px; }
@@ -1404,6 +1406,7 @@ function showView(view) {
   }
   // The bracket shows the whole tree — no filtering — so hide the filter sidebar for it
   document.body.classList.toggle('bracket-view', view === 'bracket');
+  document.body.dataset.view = view; // drives view-specific chrome (e.g. the subtitle)
 }
 
 // Group tags in the list view jump to that group's card in the groups view
