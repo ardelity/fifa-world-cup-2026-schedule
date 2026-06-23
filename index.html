@@ -12,7 +12,9 @@
     window.dataLayer = window.dataLayer || [];
     window.gtag = function () { dataLayer.push(arguments); };
     gtag('js', new Date());
-    gtag('config', '__GA_ID__');
+    // Single-page app: suppress the automatic load page_view and send one per view instead
+    // (see showView) so each view shows up separately in GA's Pages and screens report.
+    gtag('config', '__GA_ID__', { send_page_view: false });
     var ga = document.createElement('script');
     ga.async = true;
     ga.src = 'https://www.googletagmanager.com/gtag/js?id=__GA_ID__';
@@ -3502,6 +3504,11 @@ function showView(view) {
   // The bracket shows the whole tree — no filtering — so hide the filter sidebar for it
   document.body.classList.toggle('bracket-view', view === 'bracket');
   document.body.dataset.view = view; // drives view-specific chrome (e.g. the subtitle)
+  // Report the active view to GA as a virtual page view (no-op off the production host).
+  if (window.gtag) gtag('event', 'page_view', {
+    page_title: 'WC2026 · ' + view,
+    page_location: location.origin + location.pathname + '#' + view,
+  });
 }
 
 // Group tags in the list view jump to that group's card in the groups view
