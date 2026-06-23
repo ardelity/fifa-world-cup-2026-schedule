@@ -365,21 +365,34 @@ async function refresh() {
   writeIfChanged(HISTORY_FILE, JSON.stringify(history), `bracket history (${history.count} snapshots, latest G${history.latestGame ?? '-'})`);
 }
 
+// Quick retries for a failed *startup* fetch — /data is an ephemeral emptyDir, so a transient
+// feed timeout on boot would otherwise leave bracket.json/bracket-history.json 404ing (and the
+// scrubber gone) until the next hourly tick. Once any fetch succeeds we settle into INTERVAL_MS.
+const RETRY_MS = (parseInt(process.env.RETRY_SECONDS, 10) || 30) * 1000;
+const STARTUP_RETRIES = parseInt(process.env.STARTUP_RETRIES, 10) || 10;
+
 let timer = null;
 async function tick() {
   if (new Date() > STOP_AFTER) {
     console.log(`${new Date().toISOString()} past ${STOP_AFTER.toISOString()} — tournament complete, no further updates`);
     if (timer) clearInterval(timer);
-    return;
+    return true;
   }
   try {
     await refresh();
+    return true;
   } catch (err) {
     console.error(`${new Date().toISOString()} refresh failed (keeping previous data): ${err.message}`);
+    return false;
   }
 }
 
 console.log(`wc2026 updater: ${FEED_URL} -> ${OUT_FILE} every ${INTERVAL_MS / 1000}s (until ${STOP_AFTER.toISOString()})`);
-await tick();
+let ok = await tick();
+for (let i = 0; !ok && i < STARTUP_RETRIES && new Date() <= STOP_AFTER; i++) {
+  console.log(`${new Date().toISOString()} startup fetch failed — retrying in ${RETRY_MS / 1000}s (${i + 1}/${STARTUP_RETRIES})`);
+  await new Promise(r => setTimeout(r, RETRY_MS));
+  ok = await tick();
+}
 if (process.env.RUN_ONCE) process.exit(0);
 if (new Date() <= STOP_AFTER) timer = setInterval(tick, INTERVAL_MS);

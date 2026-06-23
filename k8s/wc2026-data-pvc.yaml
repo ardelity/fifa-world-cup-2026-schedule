@@ -1,0 +1,16 @@
+# Persistent storage for the updater's /data (matches.json, bracket.json,
+# best-thirds.json, bracket-history.json). Replaces the previous emptyDir so the
+# generated feeds survive pod restarts — without it a restart wipes /data and, if
+# the updater's startup fetch fails, the bracket/scrubber 404 until the next tick.
+# The Deployment uses strategy: Recreate, so a single RWO claim mounts cleanly.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wc2026-data
+  namespace: wc2026
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
