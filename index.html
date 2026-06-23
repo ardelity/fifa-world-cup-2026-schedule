@@ -2653,7 +2653,6 @@ const I18N = {
     subtitle: tzDesc => `All 104 matches, sorted by kick-off time. Times are ${tzDesc}.`,
     localTz: abbr => `Europe/Stockholm (${abbr})`,
     lastUpdated: 'Results updated',
-    thirdPlay: 'Play-off for third place',
     bracketEmpty: 'Bracket data is not available yet.',
     bestThirds: 'Best third-placed teams (top 8 advance)',
     combination: c => `Third-place combination in use: ${c} — 1 of 495`,
@@ -2682,7 +2681,6 @@ const I18N = {
     subtitle: tzDesc => `Alla 104 matcher, sorterade efter avsparkstid. Tiderna visas i ${tzDesc}.`,
     localTz: abbr => `svensk tid (${abbr})`,
     lastUpdated: 'Resultaten uppdaterade',
-    thirdPlay: 'Match om tredjepris',
     bracketEmpty: 'Slutspelsträdet är inte tillgängligt ännu.',
     bestThirds: 'Bästa grupptreor (8 bästa går vidare)',
     combination: c => `Grupptrea-kombination som används: ${c} — 1 av 495`,
@@ -3302,7 +3300,7 @@ function renderBracket() {
       <div class="bj-sf bj-sf-r"><div class="bj-round-head">${L.stages[3]}</div>${card(102, 'r')}</div>
     </div>
     <div class="bj-third">
-      <div class="bj-round-head">${L.thirdPlay}</div>
+      <div class="bj-round-head">${L.stages[4]}</div>
       ${card(103, 'b')}
     </div>
   </div>`;
@@ -3335,7 +3333,7 @@ function renderBracket() {
     [L.stages[1], [89, 90, 91, 92, 93, 94, 95, 96]],
     [L.stages[2], [97, 98, 99, 100]],
     [L.stages[3], [101, 102]],
-    [L.thirdPlay, [103]],
+    [L.stages[4], [103]],
     [L.stages[5], [104]],
   ];
   const listHtml = `<div class="bj-list">${rounds.map(([label, nums]) => `<div class="bj-list-round">
