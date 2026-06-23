@@ -545,6 +545,10 @@
   #cookie-consent .cc-accept { background: var(--accent); color: #04130a; border-color: var(--accent); font-weight: 600; }
   #cookie-consent .cc-decline { background: var(--card); color: var(--text); }
   #cookie-consent button:hover { opacity: .9; }
+  /* Persistent link to review/withdraw the cookie choice */
+  #cookie-link { position: fixed; left: 10px; bottom: 8px; z-index: 999; background: none; border: none;
+    color: var(--muted); font-size: .68rem; text-decoration: underline; cursor: pointer; padding: 4px; opacity: .6; }
+  #cookie-link:hover { opacity: 1; color: var(--text); }
 </style>
 </head>
 <body>
@@ -624,7 +628,8 @@ const I18N = {
     nextGame: 'Next game',
     cookieText: 'We use Google Analytics cookies to count visits. Is that OK?',
     cookieAccept: 'Accept',
-    cookieDecline: 'Decline'
+    cookieDecline: 'Decline',
+    cookieManage: 'Cookie settings'
   },
   sv: {
     locale: 'sv-SE',
@@ -657,7 +662,8 @@ const I18N = {
     nextGame: 'Nästa match',
     cookieText: 'Vi använder Google Analytics-cookies för att räkna besök. Är det okej?',
     cookieAccept: 'Acceptera',
-    cookieDecline: 'Avböj'
+    cookieDecline: 'Avböj',
+    cookieManage: 'Cookieinställningar'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -1487,7 +1493,7 @@ btnLangEn.addEventListener('click', () => setLang('en'));
 btnLangSv.addEventListener('click', () => setLang('sv'));
 
 setLang(lang);
-showView('groups');
+showView('bracket');
 
 // ---- Analytics consent (production host only, opt-in) ----
 // GA is loaded only after the visitor accepts, so no analytics cookies are set otherwise.
@@ -1509,16 +1515,25 @@ function loadGA() {
   gtag('event', 'page_view', { page_title: 'WC2026 · ' + view, page_location: location.origin + location.pathname + '#' + view });
 }
 function setConsent(v) {
+  let was = null; try { was = localStorage.getItem('ga-consent'); } catch {}
   try { localStorage.setItem('ga-consent', v); } catch {}
   document.getElementById('cookie-consent')?.remove();
-  if (v === 'granted') loadGA();
+  if (v === 'granted') { loadGA(); return; }
+  // Withdrawing a previous acceptance: drop the GA cookies and reload so analytics stops.
+  if (gaLoaded || was === 'granted') {
+    document.cookie.split(';').forEach(c => {
+      const n = c.split('=')[0].trim();
+      if (n === '_ga' || n === '_gid' || n.startsWith('_ga_')) {
+        for (const d of ['', '; domain=' + location.hostname, '; domain=.' + location.hostname])
+          document.cookie = `${n}=; Max-Age=0; path=/${d}`;
+      }
+    });
+    location.reload();
+  }
 }
-function initConsent() {
-  if (location.hostname !== GA_HOST) return; // analytics only in production
-  let choice = null;
-  try { choice = localStorage.getItem('ga-consent'); } catch {}
-  if (choice === 'granted') return loadGA();
-  if (choice === 'denied') return;
+// The opt-in/opt-out banner — also reachable any time via the "Cookie settings" link.
+function showConsentBanner() {
+  document.getElementById('cookie-consent')?.remove();
   const bar = document.createElement('div');
   bar.id = 'cookie-consent';
   bar.innerHTML = `<span>${L.cookieText}</span><span class="cc-actions">` +
@@ -1527,6 +1542,21 @@ function initConsent() {
   document.body.appendChild(bar);
   bar.querySelector('.cc-accept').addEventListener('click', () => setConsent('granted'));
   bar.querySelector('.cc-decline').addEventListener('click', () => setConsent('denied'));
+}
+function initConsent() {
+  if (location.hostname !== GA_HOST) return; // analytics + consent UI only in production
+  // Persistent way to review/withdraw the choice (GDPR: withdrawing must be as easy as giving).
+  const link = document.createElement('button');
+  link.id = 'cookie-link';
+  link.textContent = L.cookieManage;
+  link.addEventListener('click', showConsentBanner);
+  document.body.appendChild(link);
+
+  let choice = null;
+  try { choice = localStorage.getItem('ga-consent'); } catch {}
+  if (choice === 'granted') return loadGA();
+  if (choice === 'denied') return;
+  showConsentBanner();
 }
 initConsent();
 
