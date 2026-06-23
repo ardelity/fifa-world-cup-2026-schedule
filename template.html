@@ -599,6 +599,15 @@ let bracketViewGame = null;
 // Fair-play points per team ({ team: points }, fewer = better), from fairplay.json (served only).
 // Used as the third-place tiebreaker after goals scored.
 let FAIRPLAY = null;
+// FIFA Men's World Ranking (11 June 2026), static through the group stage — the final
+// third-place tiebreaker after fair play. Lower is better.
+const FIFA_RANK = {
+  Argentina: 1, Spain: 2, France: 3, England: 4, Portugal: 5, Brazil: 6, Morocco: 7, Netherlands: 8, Belgium: 9, Germany: 10,
+  Croatia: 11, Colombia: 13, Mexico: 14, Senegal: 15, Uruguay: 16, USA: 17, Japan: 18, Switzerland: 19, 'IR Iran': 20, 'Türkiye': 22,
+  Ecuador: 23, Austria: 24, 'Korea Republic': 25, Australia: 27, Algeria: 28, Egypt: 29, Canada: 30, Norway: 31, "Côte d'Ivoire": 33, Panama: 34,
+  Sweden: 38, Czechia: 40, Paraguay: 41, Scotland: 42, Tunisia: 45, 'Congo DR': 46, Uzbekistan: 50, Qatar: 56, Iraq: 57, 'South Africa': 60,
+  'Saudi Arabia': 61, Jordan: 63, 'Bosnia and Herzegovina': 64, 'Cabo Verde': 67, Ghana: 73, 'Curaçao': 82, Haiti: 83, 'New Zealand': 85,
+};
 
 const TZ_LOCAL = 'Europe/Stockholm';
 let tz = TZ_LOCAL;
@@ -642,7 +651,10 @@ const I18N = {
     cookieManage: 'Cookie settings',
     fpTag: 'FP',
     fpTitle: 'Order decided by fair-play points',
-    fpNote: 'FP — order decided by fair-play points (fewest disciplinary points, after goals scored).'
+    fpNote: 'FP — order decided by fair-play points (fewest disciplinary points, after goals scored).',
+    frTag: 'FR',
+    frTitle: 'Order decided by FIFA ranking',
+    frNote: 'FR — order decided by FIFA ranking (final tiebreaker).'
   },
   sv: {
     locale: 'sv-SE',
@@ -679,7 +691,10 @@ const I18N = {
     cookieManage: 'Cookieinställningar',
     fpTag: 'FP',
     fpTitle: 'Placering avgjord på fair play-poäng',
-    fpNote: 'FP — placering avgjord på fair play-poäng (minst antal disciplinpoäng, efter gjorda mål).'
+    fpNote: 'FP — placering avgjord på fair play-poäng (minst antal disciplinpoäng, efter gjorda mål).',
+    frTag: 'FR',
+    frTitle: 'Placering avgjord på Fifa-ranking',
+    frNote: 'FR — placering avgjord på Fifa-ranking (sista särskiljning).'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -984,23 +999,27 @@ function bestThirds(matches = MATCHES) {
   const maxPts = r => r.pts + 3 * rem(r);               // most points a team can still reach
   const thirdCeil = rows => rows.map(maxPts).sort((a, b) => b - a)[2]; // ceiling for a group's eventual 3rd
   const fpOf = name => (FAIRPLAY && FAIRPLAY[name]) || 0; // fair-play points (fewer is better); 0 if unknown
+  const rkOf = name => FIFA_RANK[name] ?? 999;            // FIFA ranking (lower is better)
   const thirds = [];
   for (const grp of groups) {
     const r = grp.rows[2];
-    if (r) thirds.push({ group: grp.name.replace(/^Group\s*/i, ''), team: r.team, pts: r.pts, gd: r.gf - r.ga, gf: r.gf, fp: fpOf(r.team), _rows: grp.rows });
+    if (r) thirds.push({ group: grp.name.replace(/^Group\s*/i, ''), team: r.team, pts: r.pts, gd: r.gf - r.ga, gf: r.gf, fp: fpOf(r.team), rk: rkOf(r.team), _rows: grp.rows });
   }
-  // FIFA's cross-group third-place order: points, GD, goals scored, then FAIR PLAY, then group.
-  thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.fp - b.fp || a.group.localeCompare(b.group));
-  // Flag thirds whose order was actually decided by fair play: level on pts/GD/GF but differing fp.
-  const byScore = {};
-  for (const t of thirds) (byScore[`${t.pts}|${t.gd}|${t.gf}`] ??= []).push(t);
-  for (const g of Object.values(byScore))
-    if (g.length > 1 && new Set(g.map(t => t.fp)).size > 1) g.forEach(t => t.fpApplied = true);
+  // FIFA cross-group order: points, GD, goals scored, then FAIR PLAY, then FIFA RANKING, then group.
+  thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.fp - b.fp || a.rk - b.rk || a.group.localeCompare(b.group));
+  // Tag the criterion that actually decided a third's order when it's level on pts/GD/GF with a
+  // neighbour: 'fp' if fair play separated them, else 'rank' (FIFA ranking).
+  for (let i = 0; i < thirds.length; i++) {
+    const t = thirds[i], level = o => o && o.pts === t.pts && o.gd === t.gd && o.gf === t.gf;
+    const sep = o => t.fp !== o.fp ? 'fp' : 'rank';
+    if (level(thirds[i - 1])) t.tb = sep(thirds[i - 1]);
+    else if (level(thirds[i + 1])) t.tb = sep(thirds[i + 1]);
+  }
   return thirds.map((t, i) => {
     const heldInGroup = t._rows.filter(r => r.team !== t.team && maxPts(r) >= t.pts).length <= 2;
     const passable = groups.filter(g => g.name.replace(/^Group\s*/i, '') !== t.group && thirdCeil(g.rows) >= t.pts).length;
     const secured = heldInGroup && passable <= 7;
-    return { rank: i + 1, qualifies: i < 8, secured, fpApplied: !!t.fpApplied, fp: t.fp, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
+    return { rank: i + 1, qualifies: i < 8, secured, tb: t.tb || null, fp: t.fp, rk: t.rk, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
   });
 }
 
@@ -1349,15 +1368,19 @@ function renderBracket() {
       <span class="bj-th-rank">${t.rank}</span>
       ${TEAM_CODE[t.team] ? `<img class="bj-cflag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : '<span class="bj-cflag"></span>'}
       <span class="bj-th-team">${disp(t.team)}</span>
-      ${t.fpApplied ? `<span class="bj-th-fp" title="${L.fpTitle}: ${t.fp}">${L.fpTag}</span>` : ''}
+      ${t.tb === 'fp' ? `<span class="bj-th-fp" title="${L.fpTitle}: ${t.fp}">${L.fpTag}</span>`
+        : t.tb === 'rank' ? `<span class="bj-th-fp" title="${L.frTitle}: ${t.rk}">${L.frTag}</span>` : ''}
       <span class="bj-th-grp">${dispGroup('Group ' + t.group)}</span>
       <span class="bj-th-gd">${t.gd > 0 ? '+' + t.gd : t.gd < 0 ? t.gd : '±0'}</span>
       <span class="bj-th-pts">${t.pts}&nbsp;${L.th[5]}</span>
     </div>`;
     const thirds = bestThirds(viewMatches);
+    const fpNotes = [];
+    if (thirds.some(t => t.tb === 'fp')) fpNotes.push(L.fpNote);
+    if (thirds.some(t => t.tb === 'rank')) fpNotes.push(L.frNote);
     thirdsPanel = `<div class="bj-thirds">
       <div class="bj-thirds-grid">${thirds.map(thirdItem).join('')}</div>
-      ${thirds.some(t => t.fpApplied) ? `<div class="bj-th-foot">${L.fpNote}</div>` : ''}
+      ${fpNotes.length ? `<div class="bj-th-foot">${fpNotes.join('<br>')}</div>` : ''}
     </div>`;
   }
 

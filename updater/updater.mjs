@@ -24,6 +24,16 @@ const FAIRPLAY_NAME = {
   'Ivory Coast': "Côte d'Ivoire", 'South Korea': 'Korea Republic',
   'Turkiye': 'Türkiye', 'United States': 'USA',
 };
+// FIFA/Coca-Cola Men's World Ranking position (11 June 2026 release) for the 48 finalists.
+// Static through the group stage (next update 20 July), so it's the final third-place
+// tiebreaker after fair play. Lower is better. Refresh if the 20 July update precedes knockouts.
+const FIFA_RANK = {
+  Argentina: 1, Spain: 2, France: 3, England: 4, Portugal: 5, Brazil: 6, Morocco: 7, Netherlands: 8, Belgium: 9, Germany: 10,
+  Croatia: 11, Colombia: 13, Mexico: 14, Senegal: 15, Uruguay: 16, USA: 17, Japan: 18, Switzerland: 19, 'IR Iran': 20, 'Türkiye': 22,
+  Ecuador: 23, Austria: 24, 'Korea Republic': 25, Australia: 27, Algeria: 28, Egypt: 29, Canada: 30, Norway: 31, "Côte d'Ivoire": 33, Panama: 34,
+  Sweden: 38, Czechia: 40, Paraguay: 41, Scotland: 42, Tunisia: 45, 'Congo DR': 46, Uzbekistan: 50, Qatar: 56, Iraq: 57, 'South Africa': 60,
+  'Saudi Arabia': 61, Jordan: 63, 'Bosnia and Herzegovina': 64, 'Cabo Verde': 67, Ghana: 73, 'Curaçao': 82, Haiti: 83, 'New Zealand': 85,
+};
 const INTERVAL_MS = (parseInt(process.env.INTERVAL_SECONDS, 10) || 900) * 1000;
 // The tournament ends with the final on 2026-07-19; results are final after that. Stop
 // hitting the feed once the 21st has passed — further requests are pointless. ISO date,
@@ -261,9 +271,10 @@ function standingsByGroup(matches) {
 }
 
 // One third-placed team per group, ranked best first by 1) points, 2) goal difference,
-// 3) goals scored, 4) fair-play points (fewer is better), then group letter. The eight best
-// qualify; their group letters, sorted alphabetically (e.g. "ABDEFGJK"), key the round-of-32
-// bracket. `fairPlay` is an optional { team: points } map; omitted -> fair play not applied.
+// 3) goals scored, 4) fair-play points (fewer is better), 5) FIFA ranking (lower is better),
+// then group letter. The eight best qualify; their group letters, sorted alphabetically
+// (e.g. "ABDEFGJK"), key the round-of-32 bracket. `fairPlay` is an optional { team: points }
+// map; omitted -> fair play not applied (FIFA ranking still is, since it's static).
 function bestThirds(standings, fairPlay) {
   let thirds = [];
   for (const [group, ranked] of standings) {
@@ -271,7 +282,8 @@ function bestThirds(standings, fairPlay) {
     if (third) thirds.push({ group, ...third });
   }
   const fp = t => (fairPlay && fairPlay[t.team]) ?? 0;
-  thirds.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || fp(a) - fp(b) || a.group.localeCompare(b.group));
+  const rk = t => FIFA_RANK[t.team] ?? 999;
+  thirds.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || fp(a) - fp(b) || rk(a) - rk(b) || a.group.localeCompare(b.group));
   thirds = thirds.map((t, i) => ({ rank: i + 1, qualifies: i < 8, ...t }));
   const qualifiedGroups = thirds
     .filter(t => t.qualifies)
