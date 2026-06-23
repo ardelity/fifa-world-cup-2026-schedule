@@ -450,6 +450,9 @@
   .bj-locked { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
   .bj-locked-label { font-size: .72rem; color: var(--muted); }
   .bj-lock { font-size: .7rem; font-weight: 700; color: #04130a; background: rgba(95, 217, 143, .9); border-radius: 4px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
+  .bj-lock.bj-pin { color: var(--accent); background: transparent; border: 1px solid var(--accent); cursor: pointer; }
+  .bj-th-item { cursor: pointer; }
+  .bj-th-item.pinned { outline: 2px solid var(--accent); outline-offset: -2px; }
   .bj-scroll { padding: 4px 0 16px; }
   /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
   .bj { display: flex; align-items: stretch; width: 100%; }
@@ -2695,6 +2698,10 @@ const FIFA_RANK = {
 // whatIfCombo = a chosen combination string to override the real third-place projection (null = actual).
 let ALLOCATIONS = null;
 let whatIfCombo = null;
+// Groups the user has pinned by clicking a third in the panel — required in the what-if dropdown,
+// on top of the auto-locked (clinched) groups. bjLocked mirrors the current auto-locked set.
+let pinnedGroups = new Set();
+let bjLocked = [];
 
 const TZ_LOCAL = 'Europe/Stockholm';
 let tz = TZ_LOCAL;
@@ -2746,7 +2753,9 @@ const I18N = {
     whatIfActual: 'Actual standings',
     whatIfActualTag: '(actual)',
     lockedIn: 'Locked in:',
-    lockedTitle: 'Clinched a top-8 third — in every still-possible combination'
+    lockedTitle: 'Clinched a top-8 third — in every still-possible combination',
+    pinHint: 'Click to require/release this group in the what-if combinations',
+    pinTitle: 'Pinned — click to release'
   },
   sv: {
     locale: 'sv-SE',
@@ -2791,7 +2800,9 @@ const I18N = {
     whatIfActual: 'Verkliga placeringar',
     whatIfActualTag: '(verklig)',
     lockedIn: 'Klara:',
-    lockedTitle: 'Säkrad topp-8-trea — med i alla fortfarande möjliga kombinationer'
+    lockedTitle: 'Säkrad topp-8-trea — med i alla fortfarande möjliga kombinationer',
+    pinHint: 'Klicka för att kräva/släppa gruppen i tänk om-kombinationerna',
+    pinTitle: 'Fäst — klicka för att ta bort'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -3319,7 +3330,10 @@ function renderBracket() {
   // "Locked" groups: their third has clinched a top-8 spot (same test as the panel's green),
   // so they appear in every still-possible combination. Only combos keeping all of them remain.
   const lockedGroups = ALLOCATIONS ? bestThirds(viewMatches).filter(t => t.secured).map(t => t.group).sort() : [];
-  if (whatIfCombo && lockedGroups.some(g => !whatIfCombo.includes(g))) whatIfCombo = null; // drop an now-impossible pick
+  bjLocked = lockedGroups;
+  // Required groups = auto-locked (clinched) + user-pinned. Only combos keeping all of them remain.
+  const requiredGroups = [...new Set([...lockedGroups, ...pinnedGroups])];
+  if (whatIfCombo && requiredGroups.some(g => !whatIfCombo.includes(g))) whatIfCombo = null; // drop a now-impossible pick
 
   // What-if: re-project the round-of-32 third-place slots using a chosen combination's groups
   // (each third slot gets the 3rd-placed team of the group the Annex C table assigns it).
@@ -3484,7 +3498,7 @@ function renderBracket() {
   // deciding teams. Once every team is set, the bracket itself shows the thirds, so hide it.
   let thirdsPanel = '';
   if (!allGroupsDone) {
-    const thirdItem = t => `<div class="bj-th-item${t.qualifies ? ' q' : ''}${t.secured ? ' s' : ''}">
+    const thirdItem = t => `<div class="bj-th-item${t.qualifies ? ' q' : ''}${t.secured ? ' s' : ''}${pinnedGroups.has(t.group) ? ' pinned' : ''}" data-group="${t.group}" title="${L.pinHint}">
       <span class="bj-th-rank">${t.rank}</span>
       ${TEAM_CODE[t.team] ? `<img class="bj-cflag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : '<span class="bj-cflag"></span>'}
       <span class="bj-th-team">${disp(t.team)}</span>
@@ -3540,15 +3554,17 @@ function renderBracket() {
   </div>` : '';
 
   // What-if combination selector (when the allocation table is loaded).
-  // Only combinations that keep every locked-in group are still possible — offer just those.
-  const validCombos = ALLOCATIONS ? Object.keys(ALLOCATIONS).filter(c => lockedGroups.every(g => c.includes(g))).sort() : [];
+  // Only combinations that keep every required group (locked + pinned) are still possible.
+  const validCombos = ALLOCATIONS ? Object.keys(ALLOCATIONS).filter(c => requiredGroups.every(g => c.includes(g))).sort() : [];
+  const lockBadges = lockedGroups.map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}</span>`).join('');
+  const pinBadges = [...pinnedGroups].filter(g => !lockedGroups.includes(g)).sort().map(g => `<span class="bj-lock bj-pin" data-group="${g}" title="${L.pinTitle}">${g}</span>`).join('');
   const whatIfCtl = ALLOCATIONS ? `<div class="bj-whatif">
     <span class="bj-whatif-label">${L.whatIf}</span>
     <select class="bj-whatif-select">
       <option value=""${!whatIfCombo ? ' selected' : ''}>${L.whatIfActual}</option>
       ${validCombos.map(c => `<option value="${c}"${c === whatIfCombo ? ' selected' : ''}>${c.split('').join('·')}${c === actualCombo ? ' ' + L.whatIfActualTag : ''}</option>`).join('')}
     </select>
-    ${lockedGroups.length ? `<span class="bj-locked"><span class="bj-locked-label">${L.lockedIn}</span>${lockedGroups.map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}</span>`).join('')}</span>` : ''}
+    ${lockedGroups.length || pinnedGroups.size ? `<span class="bj-locked"><span class="bj-locked-label">${L.lockedIn}</span>${lockBadges}${pinBadges}</span>` : ''}
   </div>` : '';
 
   el.innerHTML = scrubBar + whatIfCtl + thirdsPanel + `<div class="bj-scroll"><div class="bj">
@@ -3636,6 +3652,16 @@ list.addEventListener('click', e => {
 // Bracket scrubber: step the viewed game forward/back through the history snapshots.
 // Landing back on the latest sets bracketViewGame=null so it keeps tracking new results.
 document.getElementById('bracket').addEventListener('click', e => {
+  // Unpin via a pin badge, or pin/unpin a group by clicking its third in the panel (auto-locked
+  // groups are fixed by results and ignored). Either way, re-filter the what-if dropdown.
+  const pin = e.target.closest('.bj-pin');
+  if (pin && pin.dataset.group) { pinnedGroups.delete(pin.dataset.group); renderBracket(); return; }
+  const thItem = e.target.closest('.bj-th-item');
+  if (thItem && thItem.dataset.group) {
+    const g = thItem.dataset.group;
+    if (!bjLocked.includes(g)) { pinnedGroups.has(g) ? pinnedGroups.delete(g) : pinnedGroups.add(g); renderBracket(); }
+    return;
+  }
   const btn = e.target.closest('.bj-nav');
   if (!btn || btn.disabled) return;
   const snaps = BRACKET_HISTORY && BRACKET_HISTORY.snapshots;
