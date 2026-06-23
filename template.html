@@ -465,6 +465,8 @@
   .bj-thirds-grid { display: grid; grid-template-rows: repeat(4, auto); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px 14px; }
   .bj-th-item { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); font-size: .74rem; }
   .bj-th-item.q { border-color: var(--hl-border); background: var(--hl-bg); }
+  /* Clinched a top-8 third spot — same green as a "decided" bracket slot, overrides the amber projected shading */
+  .bj-th-item.s { border-color: var(--accent); background: rgba(95, 217, 143, .18); }
   .bj-th-item:not(.q) { opacity: .5; }
   .bj-th-rank { flex: 0 0 auto; width: 16px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
   .bj-th-team { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -901,14 +903,27 @@ function computeGroups() {
 
 // The 12 third-placed teams ranked best-first (points, goal difference, goals for, group);
 // the top 8 fill the round-of-32 third-place slots. Mirrors the updater's bestThirds().
+// `secured` marks a third that has CLINCHED a top-8 spot: in the worst case (it wins no
+// more, every rival wins out) it can neither be pushed below 3rd in its group nor passed
+// on points by more than 7 other groups' thirds. Points-only bound — sound (never a false
+// clinch), but conservative: GD/goals tiebreaks are ignored, so it lights up a touch late.
 function bestThirds() {
+  const groups = computeGroups();
+  const rem = r => 3 - r.p;                              // four-team groups: three games each
+  const maxPts = r => r.pts + 3 * rem(r);               // most points a team can still reach
+  const thirdCeil = rows => rows.map(maxPts).sort((a, b) => b - a)[2]; // ceiling for a group's eventual 3rd
   const thirds = [];
-  for (const grp of computeGroups()) {
+  for (const grp of groups) {
     const r = grp.rows[2];
-    if (r) thirds.push({ group: grp.name.replace(/^Group\s*/i, ''), team: r.team, pts: r.pts, gd: r.gf - r.ga, gf: r.gf });
+    if (r) thirds.push({ group: grp.name.replace(/^Group\s*/i, ''), team: r.team, pts: r.pts, gd: r.gf - r.ga, gf: r.gf, _rows: grp.rows });
   }
   thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.group.localeCompare(b.group));
-  return thirds.map((t, i) => ({ rank: i + 1, qualifies: i < 8, ...t }));
+  return thirds.map((t, i) => {
+    const heldInGroup = t._rows.filter(r => r.team !== t.team && maxPts(r) >= t.pts).length <= 2;
+    const passable = groups.filter(g => g.name.replace(/^Group\s*/i, '') !== t.group && thirdCeil(g.rows) >= t.pts).length;
+    const secured = heldInGroup && passable <= 7;
+    return { rank: i + 1, qualifies: i < 8, secured, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
+  });
 }
 
 function renderTeamsBar() {
@@ -1241,7 +1256,7 @@ function renderBracket() {
   // deciding teams. Once every team is set, the bracket itself shows the thirds, so hide it.
   let thirdsPanel = '';
   if (!allGroupsDone) {
-    const thirdItem = t => `<div class="bj-th-item${t.qualifies ? ' q' : ''}">
+    const thirdItem = t => `<div class="bj-th-item${t.qualifies ? ' q' : ''}${t.secured ? ' s' : ''}">
       <span class="bj-th-rank">${t.rank}</span>
       ${TEAM_CODE[t.team] ? `<img class="bj-cflag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : '<span class="bj-cflag"></span>'}
       <span class="bj-th-team">${disp(t.team)}</span>
