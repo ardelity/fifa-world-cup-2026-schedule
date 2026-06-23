@@ -442,6 +442,11 @@
     .bj-scrub { flex-wrap: wrap; gap: 8px 12px; }
     .bj-scrub-match { flex-basis: 100%; justify-content: center; }
   }
+  /* What-if combination selector */
+  .bj-whatif { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto 14px; flex-wrap: wrap; }
+  .bj-whatif-label { font-size: .8rem; color: var(--muted); }
+  .bj-whatif-select { background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 7px; height: 30px; padding: 0 8px; font-size: .82rem; cursor: pointer; max-width: 240px; }
+  .bj-whatif-select:hover { border-color: var(--accent); }
   .bj-scroll { padding: 4px 0 16px; }
   /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
   .bj { display: flex; align-items: stretch; width: 100%; }
@@ -608,6 +613,11 @@ const FIFA_RANK = {
   Sweden: 38, Czechia: 40, Paraguay: 41, Scotland: 42, Tunisia: 45, 'Congo DR': 46, Uzbekistan: 50, Qatar: 56, Iraq: 57, 'South Africa': 60,
   'Saudi Arabia': 61, Jordan: 63, 'Bosnia and Herzegovina': 64, 'Cabo Verde': 67, Ghana: 73, 'Curaçao': 82, Haiti: 83, 'New Zealand': 85,
 };
+// FIFA Annex C: { "<8 sorted group letters>": { "<R32 match no>": "<group whose 3rd plays there>" } }.
+// Served as static reference data; powers the bracket "what-if" combination selector.
+// whatIfCombo = a chosen combination string to override the real third-place projection (null = actual).
+let ALLOCATIONS = null;
+let whatIfCombo = null;
 
 const TZ_LOCAL = 'Europe/Stockholm';
 let tz = TZ_LOCAL;
@@ -654,7 +664,10 @@ const I18N = {
     fpNote: 'FP — order decided by fair-play points (fewest disciplinary points, after goals scored).',
     frTag: 'FR',
     frTitle: 'Order decided by FIFA ranking',
-    frNote: 'FR — order decided by FIFA ranking (final tiebreaker).'
+    frNote: 'FR — order decided by FIFA ranking (final tiebreaker).',
+    whatIf: 'What-if combination:',
+    whatIfActual: 'Actual standings',
+    whatIfActualTag: '(actual)'
   },
   sv: {
     locale: 'sv-SE',
@@ -694,7 +707,10 @@ const I18N = {
     fpNote: 'FP — placering avgjord på fair play-poäng (minst antal disciplinpoäng, efter gjorda mål).',
     frTag: 'FR',
     frTitle: 'Placering avgjord på Fifa-ranking',
-    frNote: 'FR — placering avgjord på Fifa-ranking (sista särskiljning).'
+    frNote: 'FR — placering avgjord på Fifa-ranking (sista särskiljning).',
+    whatIf: 'Tänk om-kombination:',
+    whatIfActual: 'Verkliga placeringar',
+    whatIfActualTag: '(verklig)'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -993,7 +1009,7 @@ function computeGroups(matches = MATCHES) {
 // more, every rival wins out) it can neither be pushed below 3rd in its group nor passed
 // on points by more than 7 other groups' thirds. Points-only bound — sound (never a false
 // clinch), but conservative: GD/goals tiebreaks are ignored, so it lights up a touch late.
-function bestThirds(matches = MATCHES) {
+function bestThirds(matches = MATCHES, qualifyGroups = null) {
   const groups = computeGroups(matches);
   const rem = r => 3 - r.p;                              // four-team groups: three games each
   const maxPts = r => r.pts + 3 * rem(r);               // most points a team can still reach
@@ -1018,8 +1034,10 @@ function bestThirds(matches = MATCHES) {
   return thirds.map((t, i) => {
     const heldInGroup = t._rows.filter(r => r.team !== t.team && maxPts(r) >= t.pts).length <= 2;
     const passable = groups.filter(g => g.name.replace(/^Group\s*/i, '') !== t.group && thirdCeil(g.rows) >= t.pts).length;
-    const secured = heldInGroup && passable <= 7;
-    return { rank: i + 1, qualifies: i < 8, secured, tb: t.tb || null, fp: t.fp, rk: t.rk, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
+    // In what-if mode the qualifying eight are the chosen combination's groups; "secured" is moot.
+    const qualifies = qualifyGroups ? qualifyGroups.has(t.group) : i < 8;
+    const secured = qualifyGroups ? false : (heldInGroup && passable <= 7);
+    return { rank: i + 1, qualifies, secured, tb: t.tb || null, fp: t.fp, rk: t.rk, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
   });
 }
 
@@ -1217,6 +1235,22 @@ function renderBracket() {
     viewMatches = MATCHES.map(m => seen.has(m.matchNumber) ? m : { ...m, homeScore: null, awayScore: null });
     scrub = { game: snap.game, seq: snap.seq ?? idx + 1, atEarliest: idx === 0, atLatest: idx === snaps.length - 1 };
   }
+  // What-if: re-project the round-of-32 third-place slots using a chosen combination's groups
+  // (each third slot gets the 3rd-placed team of the group the Annex C table assigns it).
+  const actualCombo = bracketData && bracketData.combination;
+  const wif = whatIfCombo && ALLOCATIONS && ALLOCATIONS[whatIfCombo] ? whatIfCombo : null;
+  if (wif && bracketData && Array.isArray(bracketData.bracket)) {
+    const alloc = ALLOCATIONS[wif];
+    const thirdOf = {};
+    for (const grp of computeGroups(viewMatches)) thirdOf[grp.name.replace(/^Group\s*/i, '')] = grp.rows[2] && grp.rows[2].team;
+    const isThird = s => s && (s.position === 3 || /^3[A-L]/.test(s.slot || ''));
+    bracketData = { ...bracketData, combination: wif, bracket: bracketData.bracket.map(b => {
+      const g = alloc[b.matchNumber];
+      if (!g) return b;
+      const fix = s => isThird(s) ? { ...s, position: 3, group: g, team: thirdOf[g] || null, slot: '3' + g, resolved: false } : s;
+      return { ...b, home: fix(b.home), away: fix(b.away) };
+    }) };
+  }
   if (!bracketData || !Array.isArray(bracketData.bracket)) {
     el.innerHTML = `<p class="bj-empty">${L.bracketEmpty}</p>`;
     return;
@@ -1374,7 +1408,7 @@ function renderBracket() {
       <span class="bj-th-gd">${t.gd > 0 ? '+' + t.gd : t.gd < 0 ? t.gd : '±0'}</span>
       <span class="bj-th-pts">${t.pts}&nbsp;${L.th[5]}</span>
     </div>`;
-    const thirds = bestThirds(viewMatches);
+    const thirds = bestThirds(viewMatches, wif ? new Set(wif.split('')) : null);
     const fpNotes = [];
     if (thirds.some(t => t.tb === 'fp')) fpNotes.push(L.fpNote);
     if (thirds.some(t => t.tb === 'rank')) fpNotes.push(L.frNote);
@@ -1419,7 +1453,16 @@ function renderBracket() {
     ${scrubMatch}
   </div>` : '';
 
-  el.innerHTML = scrubBar + thirdsPanel + `<div class="bj-scroll"><div class="bj">
+  // What-if combination selector (when the allocation table is loaded).
+  const whatIfCtl = ALLOCATIONS ? `<div class="bj-whatif">
+    <span class="bj-whatif-label">${L.whatIf}</span>
+    <select class="bj-whatif-select">
+      <option value=""${!whatIfCombo ? ' selected' : ''}>${L.whatIfActual}</option>
+      ${Object.keys(ALLOCATIONS).sort().map(c => `<option value="${c}"${c === whatIfCombo ? ' selected' : ''}>${c.split('').join('·')}${c === actualCombo ? ' ' + L.whatIfActualTag : ''}</option>`).join('')}
+    </select>
+  </div>` : '';
+
+  el.innerHTML = scrubBar + whatIfCtl + thirdsPanel + `<div class="bj-scroll"><div class="bj">
     <div class="bj-side bj-side-l">${leftCols}</div>
     ${centre}
     <div class="bj-side bj-side-r">${rightCols}</div>
@@ -1517,6 +1560,7 @@ document.getElementById('bracket').addEventListener('click', e => {
 
 // Bracket scrubber dropdown: jump straight to a game. Selecting the latest tracks live again.
 document.getElementById('bracket').addEventListener('change', e => {
+  if (e.target.closest('.bj-whatif-select')) { whatIfCombo = e.target.value || null; renderBracket(); return; }
   if (!e.target.closest('.bj-scrub-select')) return;
   const snaps = BRACKET_HISTORY && BRACKET_HISTORY.snapshots;
   if (!snaps || !snaps.length) return;
@@ -1623,6 +1667,12 @@ async function refreshData() {
       }
     })
     .catch(() => { /* keep current bracket (file:// or offline) */ });
+
+  // Third-place allocation table for the what-if selector — static, fetch once.
+  if (!ALLOCATIONS) fetch('third-place-allocations.json')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => { if (data && typeof data === 'object') { ALLOCATIONS = data; renderBracket(); } })
+    .catch(() => { /* no what-if data (file:// or offline) */ });
 
   // Fair-play points (third-place tiebreaker); served only.
   fetch('fairplay.json', { cache: 'no-store' })
