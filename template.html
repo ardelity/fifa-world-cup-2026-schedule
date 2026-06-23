@@ -429,7 +429,8 @@
   .bj-nav { background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 7px; width: 36px; height: 30px; font-size: .85rem; cursor: pointer; line-height: 1; }
   .bj-nav:hover:not(:disabled) { border-color: var(--accent); }
   .bj-nav:disabled { opacity: .35; cursor: default; }
-  .bj-scrub-label { font-size: .82rem; color: var(--muted); min-width: 130px; text-align: center; font-variant-numeric: tabular-nums; }
+  .bj-scrub-select { background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 7px; height: 30px; padding: 0 8px; font-size: .82rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+  .bj-scrub-select:hover { border-color: var(--accent); }
   .bj-scroll { padding: 4px 0 16px; }
   /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
   .bj { display: flex; align-items: stretch; width: 100%; }
@@ -1334,9 +1335,11 @@ function renderBracket() {
 
   // Forward/back scrubber — only when a game-by-game history is loaded. The forward button
   // is shown but disabled on the latest game, backward disabled on the earliest.
+  const scrubOpts = scrub ? snaps.map((s, i) =>
+    `<option value="${s.game}"${s.game === scrub.game ? ' selected' : ''}>${L.afterGame(s.game)}${i === snaps.length - 1 ? ` · ${L.latestGame}` : ''}</option>`).join('') : '';
   const scrubBar = scrub ? `<div class="bj-scrub">
     <button class="bj-nav" data-nav="prev"${scrub.atEarliest ? ' disabled' : ''} title="${L.prevGame}">◀</button>
-    <span class="bj-scrub-label">${L.afterGame(scrub.game)}${scrub.atLatest ? ` · ${L.latestGame}` : ''}</span>
+    <select class="bj-scrub-select" aria-label="${L.afterGame(scrub.game)}">${scrubOpts}</select>
     <button class="bj-nav" data-nav="next"${scrub.atLatest ? ' disabled' : ''} title="${L.nextGame}">▶</button>
   </div>` : '';
 
@@ -1427,6 +1430,16 @@ document.getElementById('bracket').addEventListener('click', e => {
   if (idx < 0) idx = snaps.length - 1;
   idx = Math.max(0, Math.min(snaps.length - 1, idx + (btn.dataset.nav === 'next' ? 1 : -1)));
   bracketViewGame = idx === snaps.length - 1 ? null : snaps[idx].game;
+  renderBracket();
+});
+
+// Bracket scrubber dropdown: jump straight to a game. Selecting the latest tracks live again.
+document.getElementById('bracket').addEventListener('change', e => {
+  if (!e.target.closest('.bj-scrub-select')) return;
+  const snaps = BRACKET_HISTORY && BRACKET_HISTORY.snapshots;
+  if (!snaps || !snaps.length) return;
+  const game = parseInt(e.target.value, 10);
+  bracketViewGame = snaps[snaps.length - 1].game === game ? null : game;
   renderBracket();
 });
 
