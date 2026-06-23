@@ -5,22 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0e1420">
 <title>FIFA World Cup 2026 — All Matches</title>
-<!-- Google Analytics (GA4) — loaded only on the public production host so local/file:// and
-     the internal hostname don't send hits. Mirrors the standard gtag.js snippet. -->
-<script>
-  if (location.hostname === 'dev.ardelity.se') {
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function () { dataLayer.push(arguments); };
-    gtag('js', new Date());
-    // Single-page app: suppress the automatic load page_view and send one per view instead
-    // (see showView) so each view shows up separately in GA's Pages and screens report.
-    gtag('config', '__GA_ID__', { send_page_view: false });
-    var ga = document.createElement('script');
-    ga.async = true;
-    ga.src = 'https://www.googletagmanager.com/gtag/js?id=__GA_ID__';
-    document.head.appendChild(ga);
-  }
-</script>
 <style>
   :root {
     --bg: #0e1420;
@@ -550,6 +534,17 @@
     .bj-scroll { display: none; }
     .bj-list { display: block; }
   }
+
+  /* Cookie consent banner (analytics opt-in) */
+  #cookie-consent { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 1000;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px;
+    max-width: 640px; margin: 0 auto; padding: 12px 16px; font-size: .85rem;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+  #cookie-consent .cc-actions { display: flex; gap: 8px; }
+  #cookie-consent button { border: 1px solid var(--line); border-radius: 7px; padding: 6px 16px; font-size: .82rem; cursor: pointer; }
+  #cookie-consent .cc-accept { background: var(--accent); color: #04130a; border-color: var(--accent); font-weight: 600; }
+  #cookie-consent .cc-decline { background: var(--card); color: var(--text); }
+  #cookie-consent button:hover { opacity: .9; }
 </style>
 </head>
 <body>
@@ -2700,7 +2695,10 @@ const I18N = {
     afterGame: n => `After game ${n}`,
     latestGame: 'latest',
     prevGame: 'Previous game',
-    nextGame: 'Next game'
+    nextGame: 'Next game',
+    cookieText: 'We use Google Analytics cookies to count visits. Is that OK?',
+    cookieAccept: 'Accept',
+    cookieDecline: 'Decline'
   },
   sv: {
     locale: 'sv-SE',
@@ -2730,7 +2728,10 @@ const I18N = {
     afterGame: n => `Efter match ${n}`,
     latestGame: 'senaste',
     prevGame: 'Föregående match',
-    nextGame: 'Nästa match'
+    nextGame: 'Nästa match',
+    cookieText: 'Vi använder Google Analytics-cookies för att räkna besök. Är det okej?',
+    cookieAccept: 'Acceptera',
+    cookieDecline: 'Avböj'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -3561,6 +3562,47 @@ btnLangSv.addEventListener('click', () => setLang('sv'));
 
 setLang(lang);
 showView('groups');
+
+// ---- Analytics consent (production host only, opt-in) ----
+// GA is loaded only after the visitor accepts, so no analytics cookies are set otherwise.
+// The choice is remembered in localStorage. showView() fires per-view page_views once gtag exists.
+const GA_ID = '__GA_ID__', GA_HOST = 'dev.ardelity.se';
+let gaLoaded = false;
+function loadGA() {
+  if (gaLoaded) return;
+  gaLoaded = true;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { dataLayer.push(arguments); };
+  gtag('js', new Date());
+  gtag('config', GA_ID, { send_page_view: false }); // SPA: send one page_view per view instead
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+  document.head.appendChild(s);
+  const view = document.body.dataset.view || '';
+  gtag('event', 'page_view', { page_title: 'WC2026 · ' + view, page_location: location.origin + location.pathname + '#' + view });
+}
+function setConsent(v) {
+  try { localStorage.setItem('ga-consent', v); } catch {}
+  document.getElementById('cookie-consent')?.remove();
+  if (v === 'granted') loadGA();
+}
+function initConsent() {
+  if (location.hostname !== GA_HOST) return; // analytics only in production
+  let choice = null;
+  try { choice = localStorage.getItem('ga-consent'); } catch {}
+  if (choice === 'granted') return loadGA();
+  if (choice === 'denied') return;
+  const bar = document.createElement('div');
+  bar.id = 'cookie-consent';
+  bar.innerHTML = `<span>${L.cookieText}</span><span class="cc-actions">` +
+    `<button class="cc-accept">${L.cookieAccept}</button>` +
+    `<button class="cc-decline">${L.cookieDecline}</button></span>`;
+  document.body.appendChild(bar);
+  bar.querySelector('.cc-accept').addEventListener('click', () => setConsent('granted'));
+  bar.querySelector('.cc-decline').addEventListener('click', () => setConsent('denied'));
+}
+initConsent();
 
 // ---- Live data refresh ----
 // In the cluster an updater sidecar rewrites matches.json with fresh results;
