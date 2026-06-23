@@ -314,18 +314,21 @@ function buildBracket(matches, standings, qualifiedGroups) {
 // Snapshots are slim (per-match home/away resolution only); the site fills dates/venues from
 // matches.json and recomputes the thirds panel from the same "as of" results.
 function buildHistory(matches) {
-  const playedNums = matches
-    .filter(m => m.homeScore !== null && m.awayScore !== null)
-    .map(m => m.matchNumber)
-    .sort((a, b) => a - b);
-  const snapshots = playedNums.map(n => {
-    const asOf = matches.map(m => m.matchNumber <= n ? m : { ...m, homeScore: null, awayScore: null });
+  // Order games as actually played — kickoff time, then match number as a tiebreak — so the
+  // scrubber reads "game 1, 2, 3 …" chronologically rather than by the gappy official numbers.
+  const order = [...matches].sort((a, b) => a.dateUtc.localeCompare(b.dateUtc) || a.matchNumber - b.matchNumber);
+  const pos = new Map(order.map((m, i) => [m.matchNumber, i]));
+  const played = order.filter(m => m.homeScore !== null && m.awayScore !== null);
+  const snapshots = played.map((gm, i) => {
+    // Results known up to and including this game; everything later in the schedule is blanked.
+    const cutoff = pos.get(gm.matchNumber);
+    const asOf = matches.map(m => pos.get(m.matchNumber) <= cutoff ? m : { ...m, homeScore: null, awayScore: null });
     const standings = standingsByGroup(asOf);
     const { qualifiedGroups } = bestThirds(standings);
     const { bracket } = buildBracket(asOf, standings, qualifiedGroups);
-    return { game: n, combination: qualifiedGroups, bracket: bracket.map(b => ({ matchNumber: b.matchNumber, home: b.home, away: b.away })) };
+    return { seq: i + 1, game: gm.matchNumber, combination: qualifiedGroups, bracket: bracket.map(b => ({ matchNumber: b.matchNumber, home: b.home, away: b.away })) };
   });
-  return { latestGame: playedNums[playedNums.length - 1] ?? null, count: snapshots.length, snapshots };
+  return { latestGame: snapshots.length, count: snapshots.length, snapshots };
 }
 
 // tmp + rename = atomic on the same volume; nginx never sees a half-written file.

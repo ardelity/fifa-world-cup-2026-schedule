@@ -3228,8 +3228,12 @@ function renderBracket() {
     if (idx < 0) idx = snaps.length - 1;
     const snap = snaps[idx];
     bracketData = { combination: snap.combination, bracket: snap.bracket };
-    viewMatches = MATCHES.map(m => m.matchNumber <= snap.game ? m : { ...m, homeScore: null, awayScore: null });
-    scrub = { game: snap.game, atEarliest: idx === 0, atLatest: idx === snaps.length - 1 };
+    // Reconstruct results "as of" this game using the same chronological order as the updater.
+    const chrono = [...MATCHES].sort((a, b) => a.dateUtc.localeCompare(b.dateUtc) || a.matchNumber - b.matchNumber);
+    const cut = chrono.findIndex(m => m.matchNumber === snap.game);
+    const seen = new Set(chrono.slice(0, cut + 1).map(m => m.matchNumber));
+    viewMatches = MATCHES.map(m => seen.has(m.matchNumber) ? m : { ...m, homeScore: null, awayScore: null });
+    scrub = { game: snap.game, seq: snap.seq ?? idx + 1, atEarliest: idx === 0, atLatest: idx === snaps.length - 1 };
   }
   if (!bracketData || !Array.isArray(bracketData.bracket)) {
     el.innerHTML = `<p class="bj-empty">${L.bracketEmpty}</p>`;
@@ -3412,7 +3416,7 @@ function renderBracket() {
   // Forward/back scrubber — only when a game-by-game history is loaded. The forward button
   // is shown but disabled on the latest game, backward disabled on the earliest.
   const scrubOpts = scrub ? snaps.map((s, i) =>
-    `<option value="${s.game}"${s.game === scrub.game ? ' selected' : ''}>${L.afterGame(s.game)}${i === snaps.length - 1 ? ` · ${L.latestGame}` : ''}</option>`).join('') : '';
+    `<option value="${s.game}"${s.game === scrub.game ? ' selected' : ''}>${L.afterGame(s.seq ?? i + 1)}${i === snaps.length - 1 ? ` · ${L.latestGame}` : ''}</option>`).join('') : '';
   // The fixture that match number played, shown beside the pager (flag + code + score).
   let scrubMatch = '';
   if (scrub) {
@@ -3424,7 +3428,7 @@ function renderBracket() {
   }
   const scrubBar = scrub ? `<div class="bj-scrub">
     <button class="bj-nav" data-nav="prev"${scrub.atEarliest ? ' disabled' : ''} title="${L.prevGame}">◀</button>
-    <select class="bj-scrub-select" aria-label="${L.afterGame(scrub.game)}">${scrubOpts}</select>
+    <select class="bj-scrub-select" aria-label="${L.afterGame(scrub.seq)}">${scrubOpts}</select>
     <button class="bj-nav" data-nav="next"${scrub.atLatest ? ' disabled' : ''} title="${L.nextGame}">▶</button>
     ${scrubMatch}
   </div>` : '';
