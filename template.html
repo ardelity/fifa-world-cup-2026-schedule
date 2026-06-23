@@ -459,10 +459,11 @@
   .bj-sf { flex: 1 1 0; min-width: 0; }
   .bj-third { margin-top: 4px; opacity: .92; }
 
-  /* Best third-placed teams — 3 columns × 4, filled top-to-bottom then left-to-right */
-  .bj-thirds { max-width: 760px; margin: 0 auto 18px; }
+  /* Best third-placed teams — 4 columns × 3, filled top-to-bottom then left-to-right */
+  .bj-thirds { max-width: 1000px; margin: 0 auto 18px; }
   .bj-thirds-title { font-size: .9rem; margin: 0 0 10px; text-align: center; color: var(--text); }
-  .bj-thirds-grid { display: grid; grid-template-rows: repeat(4, auto); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px 14px; }
+  /* 4 columns of 3 teams, filled top-to-bottom then left-to-right */
+  .bj-thirds-grid { display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px 14px; }
   .bj-th-item { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); font-size: .74rem; }
   .bj-th-item.q { border-color: var(--hl-border); background: var(--hl-bg); }
   /* Clinched a top-8 third spot — same green as a "decided" bracket slot, overrides the amber projected shading */
