@@ -11,6 +11,8 @@ const OUT_FILE = process.env.OUT_FILE || '/data/matches.json';
 const THIRDS_FILE = process.env.THIRDS_FILE || OUT_FILE.replace(/matches\.json$/, 'best-thirds.json');
 // Round-of-32 bracket projected from the current standings.
 const BRACKET_FILE = process.env.BRACKET_FILE || OUT_FILE.replace(/matches\.json$/, 'bracket.json');
+// Bracket as it would have looked after each played match — powers the site's game-by-game scrubber.
+const HISTORY_FILE = process.env.HISTORY_FILE || OUT_FILE.replace(/matches\.json$/, 'bracket-history.json');
 const INTERVAL_MS = (parseInt(process.env.INTERVAL_SECONDS, 10) || 900) * 1000;
 // The tournament ends with the final on 2026-07-19; results are final after that. Stop
 // hitting the feed once the 21st has passed — further requests are pointless. ISO date,
@@ -307,6 +309,25 @@ function buildBracket(matches, standings, qualifiedGroups) {
   return { combination: qualifiedGroups, bracket };
 }
 
+// For each played match (by ascending match number), the bracket as it would have looked
+// using only results up to and including that match — feeds the site's forward/back scrubber.
+// Snapshots are slim (per-match home/away resolution only); the site fills dates/venues from
+// matches.json and recomputes the thirds panel from the same "as of" results.
+function buildHistory(matches) {
+  const playedNums = matches
+    .filter(m => m.homeScore !== null && m.awayScore !== null)
+    .map(m => m.matchNumber)
+    .sort((a, b) => a - b);
+  const snapshots = playedNums.map(n => {
+    const asOf = matches.map(m => m.matchNumber <= n ? m : { ...m, homeScore: null, awayScore: null });
+    const standings = standingsByGroup(asOf);
+    const { qualifiedGroups } = bestThirds(standings);
+    const { bracket } = buildBracket(asOf, standings, qualifiedGroups);
+    return { game: n, combination: qualifiedGroups, bracket: bracket.map(b => ({ matchNumber: b.matchNumber, home: b.home, away: b.away })) };
+  });
+  return { latestGame: playedNums[playedNums.length - 1] ?? null, count: snapshots.length, snapshots };
+}
+
 // tmp + rename = atomic on the same volume; nginx never sees a half-written file.
 // Returns false when the content is unchanged so callers can log a quiet no-op.
 function writeIfChanged(file, json, label) {
@@ -336,6 +357,9 @@ async function refresh() {
 
   const bracket = buildBracket(matches, standings, thirds.qualifiedGroups);
   writeIfChanged(BRACKET_FILE, JSON.stringify(bracket, null, 2), `knockout bracket (${bracket.bracket.length} matches, thirds: ${thirds.qualifiedGroups || 'pending'})`);
+
+  const history = buildHistory(matches);
+  writeIfChanged(HISTORY_FILE, JSON.stringify(history), `bracket history (${history.count} snapshots, latest G${history.latestGame ?? '-'})`);
 }
 
 let timer = null;

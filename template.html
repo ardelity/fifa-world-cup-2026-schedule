@@ -423,6 +423,12 @@
   body.bracket-view #teams-bar,
   body.bracket-view #btn-filters { display: none; }
   .bj-empty { color: var(--muted); text-align: center; padding: 40px 12px; }
+  /* Game-by-game scrubber */
+  .bj-scrub { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 auto 14px; }
+  .bj-nav { background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 7px; width: 36px; height: 30px; font-size: .85rem; cursor: pointer; line-height: 1; }
+  .bj-nav:hover:not(:disabled) { border-color: var(--accent); }
+  .bj-nav:disabled { opacity: .35; cursor: default; }
+  .bj-scrub-label { font-size: .82rem; color: var(--muted); min-width: 130px; text-align: center; font-variant-numeric: tabular-nums; }
   .bj-scroll { padding: 4px 0 16px; }
   /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
   .bj { display: flex; align-items: stretch; width: 100%; }
@@ -557,6 +563,11 @@
 <script>
 let MATCHES = /*__MATCHES__*/[];
 let BRACKET = /*__BRACKET__*/null; // { combination, bracket:[...] }; baked in, refreshed from bracket.json when served
+// Game-by-game bracket history from the updater: { latestGame, snapshots:[{game, combination, bracket:[{matchNumber,home,away}]}] }.
+// Loaded at runtime (served only); powers the forward/back scrubber. `bracketViewGame` is the match number
+// currently being viewed, or null to track the latest played game.
+let BRACKET_HISTORY = null;
+let bracketViewGame = null;
 
 const TZ_LOCAL = 'Europe/Stockholm';
 let tz = TZ_LOCAL;
@@ -591,7 +602,11 @@ const I18N = {
     bestThirds: 'Best third-placed teams (top 8 advance)',
     combination: (c, n) => `Third-place combination in use: ${c} — ${n} of 495`,
     bracketLive: 'Live bracket',
-    bracketSet: 'Playoff bracket'
+    bracketSet: 'Playoff bracket',
+    afterGame: n => `After game ${n}`,
+    latestGame: 'latest',
+    prevGame: 'Previous game',
+    nextGame: 'Next game'
   },
   sv: {
     locale: 'sv-SE',
@@ -619,7 +634,11 @@ const I18N = {
     bestThirds: 'Bästa grupptreor (8 bästa går vidare)',
     combination: (c, n) => `Grupptrea-kombination som används: ${c} — ${n} av 495`,
     bracketLive: 'Live slutspel',
-    bracketSet: 'Slutspel'
+    bracketSet: 'Slutspel',
+    afterGame: n => `Efter match ${n}`,
+    latestGame: 'senaste',
+    prevGame: 'Föregående match',
+    nextGame: 'Nästa match'
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -886,9 +905,9 @@ function renderCalendar() {
 }
 
 // ---- Groups sidebar ----
-function computeGroups() {
+function computeGroups(matches = MATCHES) {
   const groups = new Map(); // 'Group A' -> Map(team -> stats)
-  for (const m of MATCHES) {
+  for (const m of matches) {
     if (m.matchNumber > 72) continue;
     if (!groups.has(m.group)) groups.set(m.group, new Map());
     const g = groups.get(m.group);
@@ -918,8 +937,8 @@ function computeGroups() {
 // more, every rival wins out) it can neither be pushed below 3rd in its group nor passed
 // on points by more than 7 other groups' thirds. Points-only bound — sound (never a false
 // clinch), but conservative: GD/goals tiebreaks are ignored, so it lights up a touch late.
-function bestThirds() {
-  const groups = computeGroups();
+function bestThirds(matches = MATCHES) {
+  const groups = computeGroups(matches);
   const rem = r => 3 - r.p;                              // four-team groups: three games each
   const maxPts = r => r.pts + 3 * rem(r);               // most points a team can still reach
   const thirdCeil = rows => rows.map(maxPts).sort((a, b) => b - a)[2]; // ceiling for a group's eventual 3rd
@@ -1120,18 +1139,31 @@ const bjPlaceholder = s => !s || /^[123][A-L]+$/.test(s) || /^(W|L|RU)\d+$/.test
 
 function renderBracket() {
   const el = document.getElementById('bracket');
-  if (!BRACKET || !Array.isArray(BRACKET.bracket)) {
+  // Default to the live BRACKET; if a game-by-game history is loaded, show the chosen
+  // snapshot (or the latest) and reconstruct the matches "as of" that game so scores,
+  // standings and the thirds panel all reflect that point in the tournament.
+  let bracketData = BRACKET, viewMatches = MATCHES, scrub = null;
+  const snaps = BRACKET_HISTORY && Array.isArray(BRACKET_HISTORY.snapshots) ? BRACKET_HISTORY.snapshots : null;
+  if (snaps && snaps.length) {
+    let idx = bracketViewGame === null ? snaps.length - 1 : snaps.findIndex(s => s.game === bracketViewGame);
+    if (idx < 0) idx = snaps.length - 1;
+    const snap = snaps[idx];
+    bracketData = { combination: snap.combination, bracket: snap.bracket };
+    viewMatches = MATCHES.map(m => m.matchNumber <= snap.game ? m : { ...m, homeScore: null, awayScore: null });
+    scrub = { game: snap.game, atEarliest: idx === 0, atLatest: idx === snaps.length - 1 };
+  }
+  if (!bracketData || !Array.isArray(bracketData.bracket)) {
     el.innerHTML = `<p class="bj-empty">${L.bracketEmpty}</p>`;
     return;
   }
-  const byBracket = new Map(BRACKET.bracket.map(b => [b.matchNumber, b]));
-  const byMatch = new Map(MATCHES.map(m => [m.matchNumber, m]));
+  const byBracket = new Map(bracketData.bracket.map(b => [b.matchNumber, b]));
+  const byMatch = new Map(viewMatches.map(m => [m.matchNumber, m]));
   const dateFmt = new Intl.DateTimeFormat(L.locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: tz });
 
   // Groups whose every match has been played → final positions are settled.
   const completed = new Set(); const groupIds = new Set();
   { const byG = new Map();
-    for (const mm of MATCHES) {
+    for (const mm of viewMatches) {
       if (!mm.group) continue;
       const g = mm.group.replace(/^Group\s*/i, '');
       groupIds.add(g);
@@ -1156,7 +1188,7 @@ function renderBracket() {
   // team -> seeding code (1E / 2C / 3A), from the current group standings — used to label
   // feed-resolved slots that carry no position/group of their own (e.g. the host nations).
   const seedOf = new Map();
-  for (const grp of computeGroups()) {
+  for (const grp of computeGroups(viewMatches)) {
     const letter = grp.name.replace(/^Group\s*/i, '');
     grp.rows.forEach((r, i) => { if (i < 3) seedOf.set(r.team, (i + 1) + letter); });
   }
@@ -1275,7 +1307,7 @@ function renderBracket() {
       <span class="bj-th-gd">${t.gd > 0 ? '+' + t.gd : t.gd < 0 ? t.gd : '±0'}</span>
       <span class="bj-th-pts">${t.pts}&nbsp;${L.th[5]}</span>
     </div>`;
-    const thirds = bestThirds();
+    const thirds = bestThirds(viewMatches);
     const combo = thirds.filter(t => t.qualifies).map(t => t.group).sort().join('');
     thirdsPanel = `<div class="bj-thirds">
       <h3 class="bj-thirds-title">${L.bestThirds}</h3>
@@ -1299,7 +1331,15 @@ function renderBracket() {
     <div class="bj-list-cards">${nums.map(n => card(n, 'b', true)).join('')}</div>
   </div>`).join('')}</div>`;
 
-  el.innerHTML = thirdsPanel + `<div class="bj-scroll"><div class="bj">
+  // Forward/back scrubber — only when a game-by-game history is loaded. The forward button
+  // is shown but disabled on the latest game, backward disabled on the earliest.
+  const scrubBar = scrub ? `<div class="bj-scrub">
+    <button class="bj-nav" data-nav="prev"${scrub.atEarliest ? ' disabled' : ''} title="${L.prevGame}">◀</button>
+    <span class="bj-scrub-label">${L.afterGame(scrub.game)}${scrub.atLatest ? ` · ${L.latestGame}` : ''}</span>
+    <button class="bj-nav" data-nav="next"${scrub.atLatest ? ' disabled' : ''} title="${L.nextGame}">▶</button>
+  </div>` : '';
+
+  el.innerHTML = scrubBar + thirdsPanel + `<div class="bj-scroll"><div class="bj">
     <div class="bj-side bj-side-l">${leftCols}</div>
     ${centre}
     <div class="bj-side bj-side-r">${rightCols}</div>
@@ -1375,6 +1415,20 @@ list.addEventListener('click', e => {
     ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
+// Bracket scrubber: step the viewed game forward/back through the history snapshots.
+// Landing back on the latest sets bracketViewGame=null so it keeps tracking new results.
+document.getElementById('bracket').addEventListener('click', e => {
+  const btn = e.target.closest('.bj-nav');
+  if (!btn || btn.disabled) return;
+  const snaps = BRACKET_HISTORY && BRACKET_HISTORY.snapshots;
+  if (!snaps || !snaps.length) return;
+  let idx = bracketViewGame === null ? snaps.length - 1 : snaps.findIndex(s => s.game === bracketViewGame);
+  if (idx < 0) idx = snaps.length - 1;
+  idx = Math.max(0, Math.min(snaps.length - 1, idx + (btn.dataset.nav === 'next' ? 1 : -1)));
+  bracketViewGame = idx === snaps.length - 1 ? null : snaps[idx].game;
+  renderBracket();
+});
+
 // ---- Language toggle ----
 const btnLangEn = document.getElementById('btn-lang-en');
 const btnLangSv = document.getElementById('btn-lang-sv');
@@ -1408,6 +1462,17 @@ async function refreshData() {
       }
     })
     .catch(() => { /* keep current bracket (file:// or offline) */ });
+
+  // Game-by-game history powers the scrubber; served only (not baked in).
+  fetch('bracket-history.json', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && Array.isArray(data.snapshots) && JSON.stringify(data) !== JSON.stringify(BRACKET_HISTORY)) {
+        BRACKET_HISTORY = data;
+        renderBracket();
+      }
+    })
+    .catch(() => { /* no history (file:// or offline) — scrubber stays hidden */ });
 
   try {
     const res = await fetch('matches.json', { cache: 'no-store' });
