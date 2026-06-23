@@ -437,6 +437,11 @@
   .bj-scrub-match .flag { width: 18px; height: 13px; }
   .bj-sm-code { letter-spacing: .02em; }
   .bj-sm-score { font-weight: 700; color: var(--text); padding: 0 2px; }
+  /* Mobile: drop the fixture onto its own row below the prev/select/next controls */
+  @media (max-width: 700px) {
+    .bj-scrub { flex-wrap: wrap; gap: 8px 12px; }
+    .bj-scrub-match { flex-basis: 100%; justify-content: center; }
+  }
   .bj-scroll { padding: 4px 0 16px; }
   /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
   .bj { display: flex; align-items: stretch; width: 100%; }
