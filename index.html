@@ -3558,11 +3558,23 @@ function renderBracket() {
   const validCombos = ALLOCATIONS ? Object.keys(ALLOCATIONS).filter(c => requiredGroups.every(g => c.includes(g))).sort() : [];
   const lockBadges = lockedGroups.map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}</span>`).join('');
   const pinBadges = [...pinnedGroups].filter(g => !lockedGroups.includes(g)).sort().map(g => `<span class="bj-lock bj-pin" data-group="${g}" title="${L.pinTitle}">${g}</span>`).join('');
+  // When exactly one group is required, show where its third lands in each combination ("3F → 1E"):
+  // the host (group-winner) seed of the round-of-32 match the Annex C table assigns it to.
+  const single = requiredGroups.length === 1 ? requiredGroups[0] : null;
+  const hostSeed = {};
+  if (single && ALLOCATIONS) for (const n of [74, 77, 79, 80, 81, 82, 85, 87]) {
+    const b = byBracket.get(n);
+    if (b) hostSeed[n] = seedCode(b.home, (b.home && b.home.team) || null);
+  }
+  const targetOf = c => {
+    const m = single && Object.keys(ALLOCATIONS[c]).find(k => ALLOCATIONS[c][k] === single);
+    return m ? ` — 3${single} → ${hostSeed[m] || '?'}` : '';
+  };
   const whatIfCtl = ALLOCATIONS ? `<div class="bj-whatif">
     <span class="bj-whatif-label">${L.whatIf}</span>
     <select class="bj-whatif-select">
       <option value=""${!whatIfCombo ? ' selected' : ''}>${L.whatIfActual}</option>
-      ${validCombos.map(c => `<option value="${c}"${c === whatIfCombo ? ' selected' : ''}>${c.split('').join('·')}${c === actualCombo ? ' ' + L.whatIfActualTag : ''}</option>`).join('')}
+      ${validCombos.map(c => `<option value="${c}"${c === whatIfCombo ? ' selected' : ''}>${c.split('').join('·')}${c === actualCombo ? ' ' + L.whatIfActualTag : ''}${targetOf(c)}</option>`).join('')}
     </select>
     ${lockedGroups.length || pinnedGroups.size ? `<span class="bj-locked"><span class="bj-locked-label">${L.lockedIn}</span>${lockBadges}${pinBadges}</span>` : ''}
   </div>` : '';
