@@ -3675,13 +3675,20 @@ document.getElementById('bracket').addEventListener('click', e => {
 
 // Bracket scrubber dropdown: jump straight to a game. Selecting the latest tracks live again.
 document.getElementById('bracket').addEventListener('change', e => {
-  if (e.target.closest('.bj-whatif-select')) { whatIfCombo = e.target.value || null; renderBracket(); return; }
+  if (e.target.closest('.bj-whatif-select')) {
+    whatIfCombo = e.target.value || null;
+    renderBracket();
+    // Re-render replaces the select, so restore focus to keep arrow-key (up/down) navigation working.
+    document.querySelector('.bj-whatif-select')?.focus();
+    return;
+  }
   if (!e.target.closest('.bj-scrub-select')) return;
   const snaps = BRACKET_HISTORY && BRACKET_HISTORY.snapshots;
   if (!snaps || !snaps.length) return;
   const game = parseInt(e.target.value, 10);
   bracketViewGame = snaps[snaps.length - 1].game === game ? null : game;
   renderBracket();
+  document.querySelector('.bj-scrub-select')?.focus(); // keep arrow-key navigation working after re-render
 });
 
 // ---- Language toggle ----
