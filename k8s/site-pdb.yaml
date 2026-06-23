@@ -1,0 +1,11 @@
+# Keep at least one site pod serving during voluntary disruptions (node drain, eviction).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: wc2026-site
+  namespace: wc2026
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: wc2026-site

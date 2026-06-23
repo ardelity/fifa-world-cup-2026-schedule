@@ -1,0 +1,50 @@
+# nginx that serves the static site + the updater's JSON feeds (read-only mount of the
+# shared PVC). Runs 2 replicas with a zero-downtime rolling update (maxUnavailable: 0) so
+# at least one instance is always serving — including during deploys and single-pod restarts.
+# (Single-node cluster, so this does not survive a full node outage — that would need a
+# multi-node setup with ReadWriteMany storage.)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wc2026-site
+  namespace: wc2026
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: wc2026-site
+  template:
+    metadata:
+      labels:
+        app: wc2026-site
+    spec:
+      containers:
+        - name: wc2026-site
+          image: registry.home.lan:5000/wc2026/site:v20260623080414
+          ports:
+            - name: http
+              containerPort: 80
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+          volumeMounts:
+            - name: match-data
+              mountPath: /data
+              readOnly: true
+          readinessProbe:
+            httpGet: { path: /fifa2026/index.html, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /fifa2026/index.html, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+      volumes:
+        - name: match-data
+          persistentVolumeClaim:
+            claimName: wc2026-data

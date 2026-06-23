@@ -1,0 +1,37 @@
+# Sidecar split out into its own single-replica deployment: it is the sole writer to the
+# shared PVC, so it must never run more than once (strategy: Recreate). The site deployment
+# can then scale/roll independently for high availability without spawning extra writers.
+# Not selected by wc2026-site-svc (different label, no http port).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wc2026-updater
+  namespace: wc2026
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: wc2026-updater
+  template:
+    metadata:
+      labels:
+        app: wc2026-updater
+    spec:
+      containers:
+        - name: wc2026-updater
+          image: registry.home.lan:5000/wc2026/updater:v20260623072249
+          env:
+            - name: INTERVAL_SECONDS
+              value: "3600"
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 128Mi }
+          volumeMounts:
+            - name: match-data
+              mountPath: /data
+      volumes:
+        - name: match-data
+          persistentVolumeClaim:
+            claimName: wc2026-data
