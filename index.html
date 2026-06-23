@@ -474,7 +474,6 @@
 
   /* Best third-placed teams — 4 columns × 3, filled top-to-bottom then left-to-right */
   .bj-thirds { max-width: 1000px; margin: 0 auto 18px; }
-  .bj-thirds-title { font-size: .9rem; margin: 0 0 10px; text-align: center; color: var(--text); }
   /* 4 columns of 3 teams, filled top-to-bottom then left-to-right */
   .bj-thirds-grid { display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px 14px; }
   .bj-th-item { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 5px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); font-size: .74rem; }
@@ -2675,7 +2674,6 @@ const I18N = {
     localTz: abbr => `Europe/Stockholm (${abbr})`,
     lastUpdated: 'Results updated',
     bracketEmpty: 'Bracket data is not available yet.',
-    bestThirds: 'Best third-placed teams (top 8 advance)',
     combination: (c, n) => `Third-place combination in use: ${c} — ${n} of 495`,
     bracketLive: 'Live bracket',
     bracketSet: 'Playoff bracket',
@@ -2707,7 +2705,6 @@ const I18N = {
     localTz: abbr => `svensk tid (${abbr})`,
     lastUpdated: 'Resultaten uppdaterade',
     bracketEmpty: 'Slutspelsträdet är inte tillgängligt ännu.',
-    bestThirds: 'Bästa grupptreor (8 bästa går vidare)',
     combination: (c, n) => `Grupptrea-kombination som används: ${c} — ${n} av 495`,
     bracketLive: 'Live slutspel',
     bracketSet: 'Slutspel',
@@ -3386,7 +3383,6 @@ function renderBracket() {
     const thirds = bestThirds(viewMatches);
     const combo = thirds.filter(t => t.qualifies).map(t => t.group).sort().join('');
     thirdsPanel = `<div class="bj-thirds">
-      <h3 class="bj-thirds-title">${L.bestThirds}</h3>
       <div class="bj-thirds-grid">${thirds.map(thirdItem).join('')}</div>
       ${combo.length === 8 ? `<div class="bj-combo">${L.combination(combo.split('').join('·'), bjComboIndex(combo))}</div>` : ''}
     </div>`;
