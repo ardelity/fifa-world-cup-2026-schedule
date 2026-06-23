@@ -433,6 +433,10 @@
   .bj-nav:disabled { opacity: .35; cursor: default; }
   .bj-scrub-select { background: var(--card); border: 1px solid var(--line); color: var(--text); border-radius: 7px; height: 30px; padding: 0 8px; font-size: .82rem; font-variant-numeric: tabular-nums; cursor: pointer; }
   .bj-scrub-select:hover { border-color: var(--accent); }
+  .bj-scrub-match { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bj-scrub-match .flag { width: 18px; height: 13px; }
+  .bj-sm-code { letter-spacing: .02em; }
+  .bj-sm-score { font-weight: 700; color: var(--text); padding: 0 2px; }
   .bj-scroll { padding: 4px 0 16px; }
   /* All levels flex to equal widths so the whole tree fits a wide screen — no horizontal scroll */
   .bj { display: flex; align-items: stretch; width: 100%; }
@@ -3409,10 +3413,20 @@ function renderBracket() {
   // is shown but disabled on the latest game, backward disabled on the earliest.
   const scrubOpts = scrub ? snaps.map((s, i) =>
     `<option value="${s.game}"${s.game === scrub.game ? ' selected' : ''}>${L.afterGame(s.game)}${i === snaps.length - 1 ? ` · ${L.latestGame}` : ''}</option>`).join('') : '';
+  // The fixture that match number played, shown beside the pager (flag + code + score).
+  let scrubMatch = '';
+  if (scrub) {
+    const gm = byMatch.get(scrub.game);
+    if (gm && gm.homeScore !== null && gm.awayScore !== null) {
+      const mini = t => `${flagImg(t)}<span class="bj-sm-code">${TEAM_CODE[t] || disp(t)}</span>`;
+      scrubMatch = `<span class="bj-scrub-match">${mini(gm.homeTeam)}<span class="bj-sm-score">${gm.homeScore}–${gm.awayScore}</span>${mini(gm.awayTeam)}</span>`;
+    }
+  }
   const scrubBar = scrub ? `<div class="bj-scrub">
     <button class="bj-nav" data-nav="prev"${scrub.atEarliest ? ' disabled' : ''} title="${L.prevGame}">◀</button>
     <select class="bj-scrub-select" aria-label="${L.afterGame(scrub.game)}">${scrubOpts}</select>
     <button class="bj-nav" data-nav="next"${scrub.atLatest ? ' disabled' : ''} title="${L.nextGame}">▶</button>
+    ${scrubMatch}
   </div>` : '';
 
   el.innerHTML = scrubBar + thirdsPanel + `<div class="bj-scroll"><div class="bj">
