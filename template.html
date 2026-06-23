@@ -1242,6 +1242,11 @@ function renderBracket() {
     viewMatches = MATCHES.map(m => seen.has(m.matchNumber) ? m : { ...m, homeScore: null, awayScore: null });
     scrub = { game: snap.game, seq: snap.seq ?? idx + 1, atEarliest: idx === 0, atLatest: idx === snaps.length - 1 };
   }
+  // "Locked" groups: their third has clinched a top-8 spot (same test as the panel's green),
+  // so they appear in every still-possible combination. Only combos keeping all of them remain.
+  const lockedGroups = ALLOCATIONS ? bestThirds(viewMatches).filter(t => t.secured).map(t => t.group).sort() : [];
+  if (whatIfCombo && lockedGroups.some(g => !whatIfCombo.includes(g))) whatIfCombo = null; // drop an now-impossible pick
+
   // What-if: re-project the round-of-32 third-place slots using a chosen combination's groups
   // (each third slot gets the 3rd-placed team of the group the Annex C table assigns it).
   const actualCombo = bracketData && bracketData.combination;
@@ -1461,14 +1466,13 @@ function renderBracket() {
   </div>` : '';
 
   // What-if combination selector (when the allocation table is loaded).
-  // "Locked" groups: their third has clinched a top-8 spot, so they appear in every still-possible
-  // combination (same green-clinched test as the thirds panel). Shown as badges by the selector.
-  const lockedGroups = ALLOCATIONS ? bestThirds(viewMatches).filter(t => t.secured).map(t => t.group).sort() : [];
+  // Only combinations that keep every locked-in group are still possible — offer just those.
+  const validCombos = ALLOCATIONS ? Object.keys(ALLOCATIONS).filter(c => lockedGroups.every(g => c.includes(g))).sort() : [];
   const whatIfCtl = ALLOCATIONS ? `<div class="bj-whatif">
     <span class="bj-whatif-label">${L.whatIf}</span>
     <select class="bj-whatif-select">
       <option value=""${!whatIfCombo ? ' selected' : ''}>${L.whatIfActual}</option>
-      ${Object.keys(ALLOCATIONS).sort().map(c => `<option value="${c}"${c === whatIfCombo ? ' selected' : ''}>${c.split('').join('·')}${c === actualCombo ? ' ' + L.whatIfActualTag : ''}</option>`).join('')}
+      ${validCombos.map(c => `<option value="${c}"${c === whatIfCombo ? ' selected' : ''}>${c.split('').join('·')}${c === actualCombo ? ' ' + L.whatIfActualTag : ''}</option>`).join('')}
     </select>
     ${lockedGroups.length ? `<span class="bj-locked"><span class="bj-locked-label">${L.lockedIn}</span>${lockedGroups.map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}</span>`).join('')}</span>` : ''}
   </div>` : '';
