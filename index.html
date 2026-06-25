@@ -3600,8 +3600,10 @@ function renderBracket() {
   // What-if combination selector (when the allocation table is loaded). The focus group — the one
   // whose opponent the dropdown shows — is marked with an asterisk in its badge.
   const star = g => g === focusGroup ? '*' : '';
-  const lockBadges = lockedGroups.map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}${star(g)}</span>`).join('');
-  const pinBadges = [...pinnedGroups].filter(g => !lockedGroups.includes(g)).sort().map(g => `<span class="bj-lock bj-pin" data-group="${g}" title="${L.pinTitle}">${g}${star(g)}</span>`).join('');
+  // Qualified groups show as solid badges; once selected (which a qualified group can be, as the
+  // focus) they move into the selected list and render as a clickable pin badge instead.
+  const lockBadges = lockedGroups.filter(g => !pinnedGroups.has(g)).map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}${star(g)}</span>`).join('');
+  const pinBadges = [...pinnedGroups].sort().map(g => `<span class="bj-lock bj-pin" data-group="${g}" title="${L.pinTitle}">${g}${star(g)}</span>`).join('');
   const hostSeed = {};
   if (focusGroup && ALLOCATIONS) for (const n of [74, 77, 79, 80, 81, 82, 85, 87]) {
     const b = byBracket.get(n);
@@ -3707,14 +3709,23 @@ list.addEventListener('click', e => {
 // Bracket scrubber: step the viewed game forward/back through the history snapshots.
 // Landing back on the latest sets bracketViewGame=null so it keeps tracking new results.
 document.getElementById('bracket').addEventListener('click', e => {
-  // Unpin via a pin badge, or pin/unpin a group by clicking its third in the panel (auto-locked
-  // groups are fixed by results and ignored). Either way, re-filter the what-if dropdown.
+  // Unpin via a pin badge, or pick/drop a group by clicking its third in the panel. A normal
+  // group toggles freely; an already-qualified (locked) group sits in every combination, so it
+  // only matters as the focus — it can be picked when nothing else is selected, click again to
+  // clear. Either way, re-filter the what-if dropdown.
   const pin = e.target.closest('.bj-pin');
   if (pin && pin.dataset.group) { pinnedGroups.delete(pin.dataset.group); renderBracket(); return; }
   const thItem = e.target.closest('.bj-th-item');
   if (thItem && thItem.dataset.group) {
     const g = thItem.dataset.group;
-    if (!bjLocked.includes(g)) { pinnedGroups.has(g) ? pinnedGroups.delete(g) : pinnedGroups.add(g); renderBracket(); }
+    if (bjLocked.includes(g)) {
+      if (pinnedGroups.has(g)) pinnedGroups.delete(g);
+      else if (pinnedGroups.size === 0) pinnedGroups.add(g);
+      else return;
+    } else {
+      pinnedGroups.has(g) ? pinnedGroups.delete(g) : pinnedGroups.add(g);
+    }
+    renderBracket();
     return;
   }
   const btn = e.target.closest('.bj-nav');
