@@ -234,39 +234,49 @@ function buildTable(groupMatches) {
   return table;
 }
 
-// FIFA group order: points, then goal difference, then goals for. Teams still tied
-// on all three are split by head-to-head (a mini-table of only the matches between
-// them), then by team name as a deterministic last resort.
-function rankGroup(groupMatches) {
+// FIFA 2026 group order (new this tournament): points, then HEAD-TO-HEAD among the teams still
+// level (mini-table points -> GD -> goals from the matches between them only), then overall GD ->
+// overall goals -> fair play -> FIFA ranking -> team name. Head-to-head now comes BEFORE overall
+// goal difference — the reverse of every pre-2026 World Cup. Head-to-head is re-applied recursively
+// to any subset a wider tie leaves level; when it can't separate them the overall criteria decide.
+function rankGroup(groupMatches, fairPlay) {
   const teams = [...buildTable(groupMatches).values()];
-  const tiedOnOverall = (a, b) => a.points === b.points && a.goalDiff === b.goalDiff && a.goalsFor === b.goalsFor;
-  teams.sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || a.team.localeCompare(b.team));
-  for (let i = 0; i < teams.length;) {
-    let j = i + 1;
-    while (j < teams.length && tiedOnOverall(teams[i], teams[j])) j++;
-    if (j - i > 1) {
-      const names = new Set(teams.slice(i, j).map(t => t.team));
-      const h2h = buildTable(groupMatches.filter(m => names.has(m.homeTeam) && names.has(m.awayTeam)));
-      const tied = teams.slice(i, j).sort((a, b) => {
-        const x = h2h.get(a.team), y = h2h.get(b.team);
-        return y.points - x.points || y.goalDiff - x.goalDiff || y.goalsFor - x.goalsFor || a.team.localeCompare(b.team);
-      });
-      teams.splice(i, tied.length, ...tied);
+  const fp = t => (fairPlay && fairPlay[t.team]) ?? 0;
+  const rk = t => FIFA_RANK[t.team] ?? 999;
+  const mini = subset => {
+    const names = new Set(subset.map(t => t.team));
+    return buildTable(groupMatches.filter(m => names.has(m.homeTeam) && names.has(m.awayTeam)));
+  };
+  const overall = (a, b) => b.goalDiff - a.goalDiff || b.goalsFor - a.goalsFor || fp(a) - fp(b) || rk(a) - rk(b) || a.team.localeCompare(b.team);
+  const resolveTie = tied => {
+    if (tied.length <= 1) return tied.slice();
+    const mt = mini(tied);
+    const key = t => { const x = mt.get(t.team); return `${x.points}|${x.goalDiff}|${x.goalsFor}`; };
+    const buckets = [...new Set(tied.map(key))]
+      .map(k => ({ teams: tied.filter(t => key(t) === k), x: mt.get(tied.find(t => key(t) === k).team) }))
+      .sort((A, B) => B.x.points - A.x.points || B.x.goalDiff - A.x.goalDiff || B.x.goalsFor - A.x.goalsFor);
+    const out = [];
+    for (const b of buckets) {
+      if (b.teams.length === 1) out.push(b.teams[0]);
+      else if (b.teams.length === tied.length) out.push(...b.teams.slice().sort(overall)); // head-to-head didn't separate them
+      else out.push(...resolveTie(b.teams));                                              // smaller tie — re-run head-to-head
     }
-    i = j;
-  }
-  return teams;
+    return out;
+  };
+  const out = [];
+  for (const p of [...new Set(teams.map(t => t.points))].sort((a, b) => b - a)) out.push(...resolveTie(teams.filter(t => t.points === p)));
+  return out;
 }
 
 // Ranked standings for every group, keyed by its full name ("Group A".."Group L").
-function standingsByGroup(matches) {
+function standingsByGroup(matches, fairPlay) {
   const groups = new Map();
   for (const m of matches) {
     if (!m.group) continue; // skip knockout fixtures
     (groups.get(m.group) ?? groups.set(m.group, []).get(m.group)).push(m);
   }
   const standings = new Map();
-  for (const [group, groupMatches] of groups) standings.set(group, rankGroup(groupMatches));
+  for (const [group, groupMatches] of groups) standings.set(group, rankGroup(groupMatches, fairPlay));
   return standings;
 }
 
@@ -338,7 +348,7 @@ function buildBracket(matches, standings, qualifiedGroups) {
 // using only results up to and including that match — feeds the site's forward/back scrubber.
 // Snapshots are slim (per-match home/away resolution only); the site fills dates/venues from
 // matches.json and recomputes the thirds panel from the same "as of" results.
-function buildHistory(matches) {
+function buildHistory(matches, fairPlay) {
   // Order games as actually played — kickoff time, then match number as a tiebreak — so the
   // scrubber reads "game 1, 2, 3 …" chronologically rather than by the gappy official numbers.
   const order = [...matches].sort((a, b) => a.dateUtc.localeCompare(b.dateUtc) || a.matchNumber - b.matchNumber);
@@ -348,8 +358,8 @@ function buildHistory(matches) {
     // Results known up to and including this game; everything later in the schedule is blanked.
     const cutoff = pos.get(gm.matchNumber);
     const asOf = matches.map(m => pos.get(m.matchNumber) <= cutoff ? m : { ...m, homeScore: null, awayScore: null });
-    const standings = standingsByGroup(asOf);
-    const { qualifiedGroups } = bestThirds(standings);
+    const standings = standingsByGroup(asOf, fairPlay);
+    const { qualifiedGroups } = bestThirds(standings, fairPlay);
     const { bracket } = buildBracket(asOf, standings, qualifiedGroups);
     return { seq: i + 1, game: gm.matchNumber, combination: qualifiedGroups, bracket: bracket.map(b => ({ matchNumber: b.matchNumber, home: b.home, away: b.away })) };
   });
@@ -424,14 +434,14 @@ async function refresh() {
     console.log(`${new Date().toISOString()} fair play unchanged (no new match since ${fairPlay.played} games)`);
   }
 
-  const standings = standingsByGroup(matches);
+  const standings = standingsByGroup(matches, fairPlay && fairPlay.points);
   const thirds = bestThirds(standings, fairPlay && fairPlay.points);
   writeIfChanged(THIRDS_FILE, JSON.stringify(thirds, null, 2), `best thirds: ${thirds.qualifiedGroups || '(none yet)'}`);
 
   const bracket = buildBracket(matches, standings, thirds.qualifiedGroups);
   writeIfChanged(BRACKET_FILE, JSON.stringify(bracket, null, 2), `knockout bracket (${bracket.bracket.length} matches, thirds: ${thirds.qualifiedGroups || 'pending'})`);
 
-  const history = buildHistory(matches);
+  const history = buildHistory(matches, fairPlay && fairPlay.points);
   writeIfChanged(HISTORY_FILE, JSON.stringify(history), `bracket history (${history.count} snapshots, latest G${history.latestGame ?? '-'})`);
 }
 
