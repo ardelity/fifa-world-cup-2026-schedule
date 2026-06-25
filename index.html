@@ -3114,12 +3114,52 @@ function computeGroups(matches = MATCHES) {
     else if (m.homeScore < m.awayScore) { a.w++; h.l++; a.pts += 3; }
     else { h.d++; a.d++; h.pts++; a.pts++; }
   }
-  // Sort: points, goal difference, goals scored, name (simplified FIFA tiebreakers)
-  return [...groups.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([name, teams]) => ({
-    name,
-    rows: [...teams.values()].sort((a, b) =>
-      b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || a.team.localeCompare(b.team))
-  }));
+  // FIFA 2026 group ranking (new this tournament): points, then HEAD-TO-HEAD among the teams
+  // still level (mini-table points → GD → goals from the matches between them only), then overall
+  // GD → overall goals → fair play → FIFA ranking. Head-to-head now comes BEFORE overall goal
+  // difference — the reverse of every pre-2026 World Cup. Between thirds of different groups (who
+  // never met) the overall criteria decide; that's handled in bestThirds().
+  const fpOf = n => (FAIRPLAY && FAIRPLAY[n]) || 0;
+  const rkOf = n => FIFA_RANK[n] ?? 999;
+  const rankGroup = (rows, groupName) => {
+    // Mini-table among `subset` from the played matches between those teams only.
+    const mini = subset => {
+      const names = new Set(subset.map(t => t.team));
+      const mt = new Map(subset.map(t => [t.team, { pts: 0, gd: 0, gf: 0 }]));
+      for (const m of matches) {
+        if (m.matchNumber > 72 || m.group !== groupName || m.homeScore === null || m.awayScore === null) continue;
+        if (!names.has(m.homeTeam) || !names.has(m.awayTeam)) continue;
+        const h = mt.get(m.homeTeam), a = mt.get(m.awayTeam);
+        h.gd += m.homeScore - m.awayScore; a.gd += m.awayScore - m.homeScore;
+        h.gf += m.homeScore; a.gf += m.awayScore;
+        if (m.homeScore > m.awayScore) h.pts += 3; else if (m.homeScore < m.awayScore) a.pts += 3; else { h.pts++; a.pts++; }
+      }
+      return mt;
+    };
+    const overall = (a, b) => (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || fpOf(a.team) - fpOf(b.team) || rkOf(a.team) - rkOf(b.team) || a.team.localeCompare(b.team);
+    // Order a set of teams all level on points, recursively re-applying head-to-head to any
+    // subset that the wider mini-table leaves still tied (per the FIFA criteria).
+    const resolveTie = tied => {
+      if (tied.length <= 1) return tied.slice();
+      const mt = mini(tied);
+      const key = t => { const x = mt.get(t.team); return `${x.pts}|${x.gd}|${x.gf}`; };
+      const buckets = [...new Set(tied.map(key))]
+        .map(k => ({ teams: tied.filter(t => key(t) === k), x: mt.get(tied.find(t => key(t) === k).team) }))
+        .sort((A, B) => B.x.pts - A.x.pts || B.x.gd - A.x.gd || B.x.gf - A.x.gf);
+      const out = [];
+      for (const b of buckets) {
+        if (b.teams.length === 1) out.push(b.teams[0]);
+        else if (b.teams.length === tied.length) out.push(...b.teams.slice().sort(overall)); // head-to-head didn't separate them
+        else out.push(...resolveTie(b.teams));                                              // smaller tie — re-run head-to-head
+      }
+      return out;
+    };
+    const out = [];
+    for (const p of [...new Set(rows.map(r => r.pts))].sort((a, b) => b - a)) out.push(...resolveTie(rows.filter(r => r.pts === p)));
+    return out;
+  };
+  return [...groups.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+    .map(([name, teams]) => ({ name, rows: rankGroup([...teams.values()], name) }));
 }
 
 // The 12 third-placed teams ranked best-first (points, goal difference, goals for, group);
@@ -3153,13 +3193,36 @@ function bestThirds(matches = MATCHES, qualifyGroups = null) {
     if (level(thirds[i - 1])) t.tb = sep(thirds[i - 1]);
     else if (level(thirds[i + 1])) t.tb = sep(thirds[i + 1]);
   }
+  // Head-to-head: has A already beaten B in their group match? (round-robin — they meet once.)
+  const beat = (A, B, gl) => {
+    for (const m of matches) {
+      if (m.matchNumber > 72 || m.group !== 'Group ' + gl || m.homeScore === null || m.awayScore === null) continue;
+      if (m.homeTeam === A && m.awayTeam === B) return m.homeScore > m.awayScore;
+      if (m.homeTeam === B && m.awayTeam === A) return m.awayScore > m.homeScore;
+    }
+    return false;
+  };
   return thirds.map((t, i) => {
     const tDone = t.played === 3;
     // Stays 3rd-or-better: a finished group fixes t as its third; otherwise at most two
     // group-mates can still reach its points (level-on-points group-mates are settled by the
     // group order, which already placed t third).
     const groupDone = t._rows.every(r => rem(r) === 0);
-    const heldInGroup = groupDone || t._rows.filter(r => r.team !== t.team && maxPts(r) >= t.pts).length <= 2;
+    // Stays 3rd-or-better (head-to-head aware): a finished group fixes t as its third. Otherwise
+    // count group-mates that could still finish above t in the worst case — a rival that can only
+    // TIE t on points (not exceed) is excluded when t already beat it head-to-head AND that tie can
+    // only be two-way (no other team can also land on that points total), since head-to-head then
+    // keeps t ahead. At most two rivals possibly above ⇒ t is guaranteed at least 3rd.
+    const canBeAt = (x, lvl) => x.pts <= lvl && maxPts(x) >= lvl;
+    const above = t._rows.filter(r => {
+      if (r.team === t.team) return false;
+      const rMax = maxPts(r);
+      if (rMax < t.pts) return false;                       // can't reach t's floor
+      if (rMax === t.pts && beat(t.team, r.team, t.group)
+          && t._rows.every(x => x.team === t.team || x.team === r.team || !canBeAt(x, t.pts))) return false;
+      return true;
+    }).length;
+    const heldInGroup = groupDone || above <= 2;
     // Other groups whose eventual 3rd can still finish at or above t. A group only counts when
     // its 3rd can outscore t on points, or — when both are finished — tie on points and win the
     // GD/goals/fair-play/ranking tiebreak (same cross-group order as the sort above).
