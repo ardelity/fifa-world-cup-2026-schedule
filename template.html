@@ -1032,9 +1032,12 @@ function computeGroups(matches = MATCHES) {
 // The 12 third-placed teams ranked best-first (points, goal difference, goals for, group);
 // the top 8 fill the round-of-32 third-place slots. Mirrors the updater's bestThirds().
 // `secured` marks a third that has CLINCHED a top-8 spot: in the worst case (it wins no
-// more, every rival wins out) it can neither be pushed below 3rd in its group nor passed
-// on points by more than 7 other groups' thirds. Points-only bound — sound (never a false
-// clinch), but conservative: GD/goals tiebreaks are ignored, so it lights up a touch late.
+// more, every rival wins out) it can neither be pushed below 3rd in its group nor finish
+// behind more than 7 other groups' thirds. The bound is points-first, but once the relevant
+// teams have played all their games it also applies the GD/goals/fair-play/ranking tiebreaks,
+// so a third level on points with a rival is ruled in or out exactly instead of always being
+// treated as beatable. Still sound (never a false clinch): a tiebreak only counts when both
+// teams are finished, since otherwise GD/goals could still be run up to overhaul it.
 function bestThirds(matches = MATCHES, qualifyGroups = null) {
   const groups = computeGroups(matches);
   const rem = r => 3 - r.p;                              // four-team groups: three games each
@@ -1045,7 +1048,7 @@ function bestThirds(matches = MATCHES, qualifyGroups = null) {
   const thirds = [];
   for (const grp of groups) {
     const r = grp.rows[2];
-    if (r) thirds.push({ group: grp.name.replace(/^Group\s*/i, ''), team: r.team, pts: r.pts, gd: r.gf - r.ga, gf: r.gf, fp: fpOf(r.team), rk: rkOf(r.team), _rows: grp.rows });
+    if (r) thirds.push({ group: grp.name.replace(/^Group\s*/i, ''), team: r.team, pts: r.pts, gd: r.gf - r.ga, gf: r.gf, fp: fpOf(r.team), rk: rkOf(r.team), played: r.p, _rows: grp.rows });
   }
   // FIFA cross-group order: points, GD, goals scored, then FAIR PLAY, then FIFA RANKING, then group.
   thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.fp - b.fp || a.rk - b.rk || a.group.localeCompare(b.group));
@@ -1058,8 +1061,28 @@ function bestThirds(matches = MATCHES, qualifyGroups = null) {
     else if (level(thirds[i + 1])) t.tb = sep(thirds[i + 1]);
   }
   return thirds.map((t, i) => {
-    const heldInGroup = t._rows.filter(r => r.team !== t.team && maxPts(r) >= t.pts).length <= 2;
-    const passable = groups.filter(g => g.name.replace(/^Group\s*/i, '') !== t.group && thirdCeil(g.rows) >= t.pts).length;
+    const tDone = t.played === 3;
+    // Stays 3rd-or-better: a finished group fixes t as its third; otherwise at most two
+    // group-mates can still reach its points (level-on-points group-mates are settled by the
+    // group order, which already placed t third).
+    const groupDone = t._rows.every(r => rem(r) === 0);
+    const heldInGroup = groupDone || t._rows.filter(r => r.team !== t.team && maxPts(r) >= t.pts).length <= 2;
+    // Other groups whose eventual 3rd can still finish at or above t. A group only counts when
+    // its 3rd can outscore t on points, or — when both are finished — tie on points and win the
+    // GD/goals/fair-play/ranking tiebreak (same cross-group order as the sort above).
+    const passable = groups.filter(g => {
+      const gl = g.name.replace(/^Group\s*/i, '');
+      if (gl === t.group) return false;
+      const pc = thirdCeil(g.rows);
+      if (pc !== t.pts) return pc > t.pts;
+      const gDone = g.rows.every(r => rem(r) === 0);
+      if (!(tDone && gDone)) return true;                 // GD/goals could still be run up — assume beatable
+      const third = g.rows[2];
+      if (!third) return true;
+      const cmp = (t.gd - (third.gf - third.ga)) || (t.gf - third.gf)
+        || (fpOf(third.team) - t.fp) || (rkOf(third.team) - t.rk) || gl.localeCompare(t.group);
+      return cmp < 0;                                     // that 3rd finishes above t → still a threat
+    }).length;
     // In what-if mode the qualifying eight are the chosen combination's groups; "secured" is moot.
     const qualifies = qualifyGroups ? qualifyGroups.has(t.group) : i < 8;
     const secured = qualifyGroups ? false : (heldInGroup && passable <= 7);
