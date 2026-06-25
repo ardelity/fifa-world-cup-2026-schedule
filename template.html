@@ -525,6 +525,8 @@
   .bj-tt-flag { width: 16px; height: 11px; object-fit: cover; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
   .bj-tt-table tr.bj-tt-in td { background: var(--hl-bg); }
   .bj-tt-table tr.bj-tt-locked td { background: rgba(95, 217, 143, .18); font-weight: 600; }
+  .bj-tt-yes { color: var(--accent); font-weight: 700; }
+  .bj-tt-no { color: #ef5e6e; font-weight: 700; }
   @media (max-width: 720px) { .bj-thirds-grid { grid-template-rows: repeat(6, auto); } }
   @media (max-width: 480px) { .bj-thirds-grid { grid-template-rows: repeat(12, auto); } }
 
@@ -702,7 +704,6 @@ const I18N = {
     tt: {
       toggle: 'Third-place race — details',
       cols: ['#', 'Grp', 'Team', 'P', 'Pts', 'GD', 'GF', 'Top 8', 'Guaranteed 3rd', 'Threats'],
-      yes: 'yes', no: 'no',
       heldTitle: "Can't drop below 3rd in its own group",
       threatsTitle: 'Other groups whose third can still finish at or above this team (≤ 7 ⇒ clinched)'
     }
@@ -758,7 +759,6 @@ const I18N = {
     tt: {
       toggle: 'Trea-racet — detaljer',
       cols: ['#', 'Grp', 'Lag', 'S', 'P', 'MS', 'GM', 'Topp 8', 'Garanterad 3:a', 'Hot'],
-      yes: 'ja', no: 'nej',
       heldTitle: 'Kan inte falla under tredje plats i sin egen grupp',
       threatsTitle: 'Andra grupper vars trea fortfarande kan sluta på eller över detta lag (≤ 7 ⇒ klar)'
     }
@@ -1575,7 +1575,7 @@ function renderBracket() {
       <td>${t.rank}</td><td>${t.group}</td>
       <td class="bj-tt-team">${TEAM_CODE[t.team] ? `<img class="bj-tt-flag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : ''}${disp(t.team)}</td>
       <td>${t.played}</td><td>${t.pts}</td><td>${fmtGd(t.gd)}</td><td>${t.gf}</td>
-      <td>${t.rank <= 8 ? '✓' : ''}</td><td>${t.held ? tt.yes : tt.no}</td><td>${t.threats}</td>
+      <td>${t.rank <= 8 ? '✓' : ''}</td><td>${t.held ? '<span class="bj-tt-yes">✓</span>' : '<span class="bj-tt-no">✗</span>'}</td><td>${t.threats}</td>
     </tr>`;
     const thirdsTable = `<details class="bj-tt"><summary>${tt.toggle}</summary>
       <table class="bj-tt-table"><thead><tr>${tt.cols.map((c, i) =>
