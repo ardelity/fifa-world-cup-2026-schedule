@@ -514,6 +514,17 @@
   .bj-th-pts { flex: 0 0 auto; color: var(--muted); font-variant-numeric: tabular-nums; }
   .bj-th-fp { flex: 0 0 auto; font-size: .55rem; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 0 3px; letter-spacing: .03em; }
   .bj-th-foot { margin-top: 10px; text-align: center; font-size: .68rem; color: var(--muted); }
+  /* Expandable detail table — collapsed by default via <details> */
+  .bj-tt { max-width: 760px; margin: 12px auto 0; }
+  .bj-tt > summary { cursor: pointer; color: var(--muted); font-size: .72rem; padding: 4px 0; user-select: none; }
+  .bj-tt > summary:hover { color: var(--text); }
+  .bj-tt-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .72rem; font-variant-numeric: tabular-nums; }
+  .bj-tt-table th, .bj-tt-table td { padding: 3px 6px; text-align: center; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .bj-tt-table th { color: var(--muted); font-weight: 600; }
+  .bj-tt-table th:nth-child(3), .bj-tt-table td.bj-tt-team { text-align: left; }
+  .bj-tt-flag { width: 16px; height: 11px; object-fit: cover; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+  .bj-tt-table tr.bj-tt-in td { background: var(--hl-bg); }
+  .bj-tt-table tr.bj-tt-locked td { background: rgba(95, 217, 143, .18); font-weight: 600; }
   @media (max-width: 720px) { .bj-thirds-grid { grid-template-rows: repeat(6, auto); } }
   @media (max-width: 480px) { .bj-thirds-grid { grid-template-rows: repeat(12, auto); } }
 
@@ -1186,8 +1197,8 @@ let MATCHES = [
     "awayTeam": "Iraq",
     "group": "Group I",
     "location": "Philadelphia Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 3,
+    "awayScore": 0,
     "broadcaster": "SVT1",
     "stadium": "Lincoln Financial Field",
     "city": "Philadelphia",
@@ -1200,8 +1211,8 @@ let MATCHES = [
     "awayTeam": "Senegal",
     "group": "Group I",
     "location": "New York/New Jersey Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 3,
+    "awayScore": 2,
     "broadcaster": "SVT1",
     "stadium": "MetLife Stadium",
     "city": "New York/New Jersey (East Rutherford)",
@@ -1214,8 +1225,8 @@ let MATCHES = [
     "awayTeam": "Algeria",
     "group": "Group J",
     "location": "San Francisco Bay Area Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 2,
     "broadcaster": "TV4",
     "stadium": "Levi's Stadium",
     "city": "San Francisco Bay Area (Santa Clara)",
@@ -1228,8 +1239,8 @@ let MATCHES = [
     "awayTeam": "Uzbekistan",
     "group": "Group K",
     "location": "Houston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 5,
+    "awayScore": 0,
     "broadcaster": "SVT2/SVT1",
     "stadium": "NRG Stadium",
     "city": "Houston",
@@ -1242,8 +1253,8 @@ let MATCHES = [
     "awayTeam": "Ghana",
     "group": "Group L",
     "location": "Boston Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 0,
     "broadcaster": "SVT1",
     "stadium": "Gillette Stadium",
     "city": "Boston (Foxborough)",
@@ -1256,8 +1267,8 @@ let MATCHES = [
     "awayTeam": "Croatia",
     "group": "Group L",
     "location": "Toronto Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "BMO Field",
     "city": "Toronto",
@@ -1270,8 +1281,8 @@ let MATCHES = [
     "awayTeam": "Congo DR",
     "group": "Group K",
     "location": "Guadalajara Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 0,
     "broadcaster": "TV4",
     "stadium": "Estadio Akron",
     "city": "Guadalajara",
@@ -1284,8 +1295,8 @@ let MATCHES = [
     "awayTeam": "Canada",
     "group": "Group B",
     "location": "BC Place Vancouver",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 2,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "BC Place",
     "city": "Vancouver",
@@ -1298,8 +1309,8 @@ let MATCHES = [
     "awayTeam": "Qatar",
     "group": "Group B",
     "location": "Seattle Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 3,
+    "awayScore": 1,
     "broadcaster": "TV4",
     "stadium": "Lumen Field",
     "city": "Seattle",
@@ -1312,8 +1323,8 @@ let MATCHES = [
     "awayTeam": "Brazil",
     "group": "Group C",
     "location": "Miami Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 3,
     "broadcaster": "TV4",
     "stadium": "Hard Rock Stadium",
     "city": "Miami",
@@ -1326,8 +1337,8 @@ let MATCHES = [
     "awayTeam": "Haiti",
     "group": "Group C",
     "location": "Atlanta Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 4,
+    "awayScore": 2,
     "broadcaster": "TV4",
     "stadium": "Mercedes-Benz Stadium",
     "city": "Atlanta",
@@ -1340,8 +1351,8 @@ let MATCHES = [
     "awayTeam": "Mexico",
     "group": "Group A",
     "location": "Mexico City Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 0,
+    "awayScore": 3,
     "broadcaster": "SVT1",
     "stadium": "Estadio Azteca",
     "city": "Mexico City",
@@ -1354,8 +1365,8 @@ let MATCHES = [
     "awayTeam": "Korea Republic",
     "group": "Group A",
     "location": "Monterrey Stadium",
-    "homeScore": null,
-    "awayScore": null,
+    "homeScore": 1,
+    "awayScore": 0,
     "broadcaster": "SVT2",
     "stadium": "Estadio BBVA",
     "city": "Monterrey",
@@ -1616,8 +1627,8 @@ let MATCHES = [
   {
     "matchNumber": 73,
     "dateUtc": "2026-06-28T19:00:00Z",
-    "homeTeam": "2A",
-    "awayTeam": "2B",
+    "homeTeam": "South Africa",
+    "awayTeam": "Canada",
     "group": null,
     "location": "Los Angeles Stadium",
     "homeScore": null,
@@ -1630,7 +1641,7 @@ let MATCHES = [
   {
     "matchNumber": 76,
     "dateUtc": "2026-06-29T17:00:00Z",
-    "homeTeam": "1C",
+    "homeTeam": "Brazil",
     "awayTeam": "2F",
     "group": null,
     "location": "Houston Stadium",
@@ -1659,7 +1670,7 @@ let MATCHES = [
     "matchNumber": 75,
     "dateUtc": "2026-06-30T01:00:00Z",
     "homeTeam": "1F",
-    "awayTeam": "2C",
+    "awayTeam": "Morocco",
     "group": null,
     "location": "Monterrey Stadium",
     "homeScore": null,
@@ -1784,7 +1795,7 @@ let MATCHES = [
   {
     "matchNumber": 85,
     "dateUtc": "2026-07-03T03:00:00Z",
-    "homeTeam": "1B",
+    "homeTeam": "Switzerland",
     "awayTeam": "3EFGIJ",
     "group": null,
     "location": "BC Place Vancouver",
@@ -1812,7 +1823,7 @@ let MATCHES = [
   {
     "matchNumber": 86,
     "dateUtc": "2026-07-03T22:00:00Z",
-    "homeTeam": "1J",
+    "homeTeam": "Argentina",
     "awayTeam": "2H",
     "group": null,
     "location": "Miami Stadium",
@@ -2063,7 +2074,7 @@ let MATCHES = [
   }
 ];
 let BRACKET = {
-  "combination": "ACDEFGHK",
+  "combination": "ABCDFHJL",
   "bracket": [
     {
       "matchNumber": 73,
@@ -2073,16 +2084,14 @@ let BRACKET = {
       "city": "Los Angeles (Inglewood)",
       "country": "USA",
       "home": {
-        "slot": "2A",
-        "position": 2,
-        "group": "A",
-        "team": "Korea Republic"
+        "slot": "South Africa",
+        "team": "South Africa",
+        "resolved": true
       },
       "away": {
-        "slot": "2B",
-        "position": 2,
-        "group": "B",
-        "team": "Switzerland"
+        "slot": "Canada",
+        "team": "Canada",
+        "resolved": true
       }
     },
     {
@@ -2101,8 +2110,8 @@ let BRACKET = {
         "slot": "3ABCDF",
         "position": 3,
         "eligibleGroups": "ABCDF",
-        "group": "C",
-        "team": "Scotland"
+        "group": "D",
+        "team": "Paraguay"
       }
     },
     {
@@ -2119,10 +2128,9 @@ let BRACKET = {
         "team": "Netherlands"
       },
       "away": {
-        "slot": "2C",
-        "position": 2,
-        "group": "C",
-        "team": "Morocco"
+        "slot": "Morocco",
+        "team": "Morocco",
+        "resolved": true
       }
     },
     {
@@ -2133,10 +2141,9 @@ let BRACKET = {
       "city": "Houston",
       "country": "USA",
       "home": {
-        "slot": "1C",
-        "position": 1,
-        "group": "C",
-        "team": "Brazil"
+        "slot": "Brazil",
+        "team": "Brazil",
+        "resolved": true
       },
       "away": {
         "slot": "2F",
@@ -2156,7 +2163,7 @@ let BRACKET = {
         "slot": "1I",
         "position": 1,
         "group": "I",
-        "team": "Norway"
+        "team": "France"
       },
       "away": {
         "slot": "3CDFGH",
@@ -2183,7 +2190,7 @@ let BRACKET = {
         "slot": "2I",
         "position": 2,
         "group": "I",
-        "team": "France"
+        "team": "Norway"
       }
     },
     {
@@ -2202,8 +2209,8 @@ let BRACKET = {
         "slot": "3CEFHI",
         "position": 3,
         "eligibleGroups": "CEFHI",
-        "group": "H",
-        "team": "Cabo Verde"
+        "group": "C",
+        "team": "Scotland"
       }
     },
     {
@@ -2223,8 +2230,8 @@ let BRACKET = {
         "slot": "3EHIJK",
         "position": 3,
         "eligibleGroups": "EHIJK",
-        "group": "K",
-        "team": "Portugal"
+        "group": "H",
+        "team": "Cabo Verde"
       }
     },
     {
@@ -2243,8 +2250,8 @@ let BRACKET = {
         "slot": "3BEFIJ",
         "position": 3,
         "eligibleGroups": "BEFIJ",
-        "group": "E",
-        "team": "Ecuador"
+        "group": "B",
+        "team": "Bosnia and Herzegovina"
       }
     },
     {
@@ -2265,7 +2272,7 @@ let BRACKET = {
         "position": 3,
         "eligibleGroups": "AEHIJ",
         "group": "A",
-        "team": "Czechia"
+        "team": "Korea Republic"
       }
     },
     {
@@ -2279,7 +2286,7 @@ let BRACKET = {
         "slot": "2K",
         "position": 2,
         "group": "K",
-        "team": "Congo DR"
+        "team": "Portugal"
       },
       "away": {
         "slot": "2L",
@@ -2316,17 +2323,16 @@ let BRACKET = {
       "city": "Vancouver",
       "country": "Canada",
       "home": {
-        "slot": "1B",
-        "position": 1,
-        "group": "B",
-        "team": "Canada"
+        "slot": "Switzerland",
+        "team": "Switzerland",
+        "resolved": true
       },
       "away": {
         "slot": "3EFGIJ",
         "position": 3,
         "eligibleGroups": "EFGIJ",
-        "group": "G",
-        "team": "Belgium"
+        "group": "J",
+        "team": "Algeria"
       }
     },
     {
@@ -2337,10 +2343,9 @@ let BRACKET = {
       "city": "Miami",
       "country": "USA",
       "home": {
-        "slot": "1J",
-        "position": 1,
-        "group": "J",
-        "team": "Argentina"
+        "slot": "Argentina",
+        "team": "Argentina",
+        "resolved": true
       },
       "away": {
         "slot": "2H",
@@ -2366,8 +2371,8 @@ let BRACKET = {
         "slot": "3DEIJL",
         "position": 3,
         "eligibleGroups": "DEIJL",
-        "group": "D",
-        "team": "Paraguay"
+        "group": "L",
+        "team": "Croatia"
       }
     },
     {
@@ -2761,7 +2766,14 @@ const I18N = {
     pinHint: 'Click to require/release this group in the what-if combinations',
     pinTitle: 'Pinned — click to release',
     matchTitle: 'In the current top 8 and this combination',
-    whatIfLegend: '✓ current top 8 & in combination · left bar = current top 8 · shaded = in combination'
+    whatIfLegend: '✓ current top 8 & in combination · left bar = current top 8 · shaded = in combination',
+    tt: {
+      toggle: 'Third-place race — details',
+      cols: ['#', 'Grp', 'Team', 'P', 'Pts', 'GD', 'GF', 'Top 8', 'Held', 'Threats'],
+      yes: 'yes', no: 'no',
+      heldTitle: "Can't drop below 3rd in its own group",
+      threatsTitle: 'Other groups whose third can still finish at or above this team (≤ 7 ⇒ clinched)'
+    }
   },
   sv: {
     locale: 'sv-SE',
@@ -2810,7 +2822,14 @@ const I18N = {
     pinHint: 'Klicka för att kräva/släppa gruppen i tänk om-kombinationerna',
     pinTitle: 'Fäst — klicka för att ta bort',
     matchTitle: 'Bland nuvarande topp-8 och denna kombination',
-    whatIfLegend: '✓ nuvarande topp-8 & i kombinationen · vänster kant = nuvarande topp-8 · skuggad = i kombinationen'
+    whatIfLegend: '✓ nuvarande topp-8 & i kombinationen · vänster kant = nuvarande topp-8 · skuggad = i kombinationen',
+    tt: {
+      toggle: 'Trea-racet — detaljer',
+      cols: ['#', 'Grp', 'Lag', 'S', 'P', 'MS', 'GM', 'Topp 8', 'Säker', 'Hot'],
+      yes: 'ja', no: 'nej',
+      heldTitle: 'Kan inte falla under tredje plats i sin egen grupp',
+      threatsTitle: 'Andra grupper vars trea fortfarande kan sluta på eller över detta lag (≤ 7 ⇒ klar)'
+    }
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -3160,7 +3179,7 @@ function bestThirds(matches = MATCHES, qualifyGroups = null) {
     // In what-if mode the qualifying eight are the chosen combination's groups; "secured" is moot.
     const qualifies = qualifyGroups ? qualifyGroups.has(t.group) : i < 8;
     const secured = qualifyGroups ? false : (heldInGroup && passable <= 7);
-    return { rank: i + 1, qualifies, secured, tb: t.tb || null, fp: t.fp, rk: t.rk, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
+    return { rank: i + 1, qualifies, secured, held: heldInGroup, threats: passable, played: t.played, tb: t.tb || null, fp: t.fp, rk: t.rk, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
   });
 }
 
@@ -3551,9 +3570,26 @@ function renderBracket() {
     if (wif) fpNotes.push(L.whatIfLegend);
     if (thirds.some(t => t.tb === 'fp')) fpNotes.push(L.fpNote);
     if (thirds.some(t => t.tb === 'rank')) fpNotes.push(L.frNote);
+    // Expandable, collapsed-by-default detail table — the full third-place race with the numbers
+    // behind the panel (played, points, GD, goals) plus the clinch mechanics (held / threats).
+    // Use the real standings (secured is moot in what-if mode), so it always reflects the race.
+    const raceThirds = wif ? bestThirds(viewMatches) : thirds;
+    const tt = L.tt;
+    const fmtGd = g => g > 0 ? '+' + g : g < 0 ? '' + g : '±0';
+    const ttRow = t => `<tr class="${t.secured ? 'bj-tt-locked' : t.rank <= 8 ? 'bj-tt-in' : ''}">
+      <td>${t.rank}</td><td>${t.group}</td>
+      <td class="bj-tt-team">${TEAM_CODE[t.team] ? `<img class="bj-tt-flag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : ''}${disp(t.team)}</td>
+      <td>${t.played}</td><td>${t.pts}</td><td>${fmtGd(t.gd)}</td><td>${t.gf}</td>
+      <td>${t.rank <= 8 ? '✓' : ''}</td><td>${t.held ? tt.yes : tt.no}</td><td>${t.threats}</td>
+    </tr>`;
+    const thirdsTable = `<details class="bj-tt"><summary>${tt.toggle}</summary>
+      <table class="bj-tt-table"><thead><tr>${tt.cols.map((c, i) =>
+        `<th${i === 8 ? ` title="${tt.heldTitle}"` : i === 9 ? ` title="${tt.threatsTitle}"` : ''}>${c}</th>`).join('')}</tr></thead>
+      <tbody>${raceThirds.map(ttRow).join('')}</tbody></table></details>`;
     thirdsPanel = `<div class="bj-thirds">
       <div class="bj-thirds-grid">${thirds.map(thirdItem).join('')}</div>
       ${fpNotes.length ? `<div class="bj-th-foot">${fpNotes.join('<br>')}</div>` : ''}
+      ${thirdsTable}
     </div>`;
   }
 

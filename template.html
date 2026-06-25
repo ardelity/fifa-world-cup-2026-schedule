@@ -514,6 +514,17 @@
   .bj-th-pts { flex: 0 0 auto; color: var(--muted); font-variant-numeric: tabular-nums; }
   .bj-th-fp { flex: 0 0 auto; font-size: .55rem; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 0 3px; letter-spacing: .03em; }
   .bj-th-foot { margin-top: 10px; text-align: center; font-size: .68rem; color: var(--muted); }
+  /* Expandable detail table — collapsed by default via <details> */
+  .bj-tt { max-width: 760px; margin: 12px auto 0; }
+  .bj-tt > summary { cursor: pointer; color: var(--muted); font-size: .72rem; padding: 4px 0; user-select: none; }
+  .bj-tt > summary:hover { color: var(--text); }
+  .bj-tt-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .72rem; font-variant-numeric: tabular-nums; }
+  .bj-tt-table th, .bj-tt-table td { padding: 3px 6px; text-align: center; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .bj-tt-table th { color: var(--muted); font-weight: 600; }
+  .bj-tt-table th:nth-child(3), .bj-tt-table td.bj-tt-team { text-align: left; }
+  .bj-tt-flag { width: 16px; height: 11px; object-fit: cover; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+  .bj-tt-table tr.bj-tt-in td { background: var(--hl-bg); }
+  .bj-tt-table tr.bj-tt-locked td { background: rgba(95, 217, 143, .18); font-weight: 600; }
   @media (max-width: 720px) { .bj-thirds-grid { grid-template-rows: repeat(6, auto); } }
   @media (max-width: 480px) { .bj-thirds-grid { grid-template-rows: repeat(12, auto); } }
 
@@ -687,7 +698,14 @@ const I18N = {
     pinHint: 'Click to require/release this group in the what-if combinations',
     pinTitle: 'Pinned — click to release',
     matchTitle: 'In the current top 8 and this combination',
-    whatIfLegend: '✓ current top 8 & in combination · left bar = current top 8 · shaded = in combination'
+    whatIfLegend: '✓ current top 8 & in combination · left bar = current top 8 · shaded = in combination',
+    tt: {
+      toggle: 'Third-place race — details',
+      cols: ['#', 'Grp', 'Team', 'P', 'Pts', 'GD', 'GF', 'Top 8', 'Held', 'Threats'],
+      yes: 'yes', no: 'no',
+      heldTitle: "Can't drop below 3rd in its own group",
+      threatsTitle: 'Other groups whose third can still finish at or above this team (≤ 7 ⇒ clinched)'
+    }
   },
   sv: {
     locale: 'sv-SE',
@@ -736,7 +754,14 @@ const I18N = {
     pinHint: 'Klicka för att kräva/släppa gruppen i tänk om-kombinationerna',
     pinTitle: 'Fäst — klicka för att ta bort',
     matchTitle: 'Bland nuvarande topp-8 och denna kombination',
-    whatIfLegend: '✓ nuvarande topp-8 & i kombinationen · vänster kant = nuvarande topp-8 · skuggad = i kombinationen'
+    whatIfLegend: '✓ nuvarande topp-8 & i kombinationen · vänster kant = nuvarande topp-8 · skuggad = i kombinationen',
+    tt: {
+      toggle: 'Trea-racet — detaljer',
+      cols: ['#', 'Grp', 'Lag', 'S', 'P', 'MS', 'GM', 'Topp 8', 'Säker', 'Hot'],
+      yes: 'ja', no: 'nej',
+      heldTitle: 'Kan inte falla under tredje plats i sin egen grupp',
+      threatsTitle: 'Andra grupper vars trea fortfarande kan sluta på eller över detta lag (≤ 7 ⇒ klar)'
+    }
   }
 };
 let L = I18N[lang] ?? I18N.sv;
@@ -1086,7 +1111,7 @@ function bestThirds(matches = MATCHES, qualifyGroups = null) {
     // In what-if mode the qualifying eight are the chosen combination's groups; "secured" is moot.
     const qualifies = qualifyGroups ? qualifyGroups.has(t.group) : i < 8;
     const secured = qualifyGroups ? false : (heldInGroup && passable <= 7);
-    return { rank: i + 1, qualifies, secured, tb: t.tb || null, fp: t.fp, rk: t.rk, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
+    return { rank: i + 1, qualifies, secured, held: heldInGroup, threats: passable, played: t.played, tb: t.tb || null, fp: t.fp, rk: t.rk, group: t.group, team: t.team, pts: t.pts, gd: t.gd, gf: t.gf };
   });
 }
 
@@ -1477,9 +1502,26 @@ function renderBracket() {
     if (wif) fpNotes.push(L.whatIfLegend);
     if (thirds.some(t => t.tb === 'fp')) fpNotes.push(L.fpNote);
     if (thirds.some(t => t.tb === 'rank')) fpNotes.push(L.frNote);
+    // Expandable, collapsed-by-default detail table — the full third-place race with the numbers
+    // behind the panel (played, points, GD, goals) plus the clinch mechanics (held / threats).
+    // Use the real standings (secured is moot in what-if mode), so it always reflects the race.
+    const raceThirds = wif ? bestThirds(viewMatches) : thirds;
+    const tt = L.tt;
+    const fmtGd = g => g > 0 ? '+' + g : g < 0 ? '' + g : '±0';
+    const ttRow = t => `<tr class="${t.secured ? 'bj-tt-locked' : t.rank <= 8 ? 'bj-tt-in' : ''}">
+      <td>${t.rank}</td><td>${t.group}</td>
+      <td class="bj-tt-team">${TEAM_CODE[t.team] ? `<img class="bj-tt-flag" src="img/flags/${TEAM_CODE[t.team].toLowerCase()}.svg" alt="">` : ''}${disp(t.team)}</td>
+      <td>${t.played}</td><td>${t.pts}</td><td>${fmtGd(t.gd)}</td><td>${t.gf}</td>
+      <td>${t.rank <= 8 ? '✓' : ''}</td><td>${t.held ? tt.yes : tt.no}</td><td>${t.threats}</td>
+    </tr>`;
+    const thirdsTable = `<details class="bj-tt"><summary>${tt.toggle}</summary>
+      <table class="bj-tt-table"><thead><tr>${tt.cols.map((c, i) =>
+        `<th${i === 8 ? ` title="${tt.heldTitle}"` : i === 9 ? ` title="${tt.threatsTitle}"` : ''}>${c}</th>`).join('')}</tr></thead>
+      <tbody>${raceThirds.map(ttRow).join('')}</tbody></table></details>`;
     thirdsPanel = `<div class="bj-thirds">
       <div class="bj-thirds-grid">${thirds.map(thirdItem).join('')}</div>
       ${fpNotes.length ? `<div class="bj-th-foot">${fpNotes.join('<br>')}</div>` : ''}
+      ${thirdsTable}
     </div>`;
   }
 
