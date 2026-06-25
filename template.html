@@ -1498,21 +1498,22 @@ function renderBracket() {
   // What-if combination selector (when the allocation table is loaded).
   const lockBadges = lockedGroups.map(g => `<span class="bj-lock" title="${L.lockedTitle}">${g}</span>`).join('');
   const pinBadges = [...pinnedGroups].filter(g => !lockedGroups.includes(g)).sort().map(g => `<span class="bj-lock bj-pin" data-group="${g}" title="${L.pinTitle}">${g}</span>`).join('');
-  // When exactly one group is required, show where its third lands in each combination ("3F → 1E"):
-  // the host (group-winner) seed of the round-of-32 match the Annex C table assigns it to, and
-  // sort the options by that opponent first, then by combination.
-  const single = requiredGroups.length === 1 ? requiredGroups[0] : null;
+  // Show where one group's third lands in each combination ("3F → 1E"): the host (group-winner)
+  // seed of the round-of-32 match the Annex C table assigns it to, and sort the options by that
+  // opponent first, then by combination. With several groups selected we follow the first the user
+  // pinned (insertion order); otherwise the lone required group, if there's exactly one.
+  const focusGroup = [...pinnedGroups][0] || (requiredGroups.length === 1 ? requiredGroups[0] : null);
   const hostSeed = {};
-  if (single && ALLOCATIONS) for (const n of [74, 77, 79, 80, 81, 82, 85, 87]) {
+  if (focusGroup && ALLOCATIONS) for (const n of [74, 77, 79, 80, 81, 82, 85, 87]) {
     const b = byBracket.get(n);
     if (b) hostSeed[n] = seedCode(b.home, (b.home && b.home.team) || null);
   }
-  const targetMatch = c => single && Object.keys(ALLOCATIONS[c]).find(k => ALLOCATIONS[c][k] === single);
+  const targetMatch = c => focusGroup && Object.keys(ALLOCATIONS[c]).find(k => ALLOCATIONS[c][k] === focusGroup);
   const targetSeed = c => { const m = targetMatch(c); return m ? (hostSeed[m] || 'zzz') : ''; };
-  const targetOf = c => { const m = targetMatch(c); return m ? ` — 3${single} → ${hostSeed[m] || '?'}` : ''; };
+  const targetOf = c => { const m = targetMatch(c); return m ? ` — 3${focusGroup} → ${hostSeed[m] || '?'}` : ''; };
   // Only combinations that keep every required group (locked + pinned) are still possible.
   const validCombos = ALLOCATIONS ? Object.keys(ALLOCATIONS).filter(c => requiredGroups.every(g => c.includes(g)))
-    .sort((a, b) => (single ? targetSeed(a).localeCompare(targetSeed(b)) : 0) || a.localeCompare(b)) : [];
+    .sort((a, b) => (focusGroup ? targetSeed(a).localeCompare(targetSeed(b)) : 0) || a.localeCompare(b)) : [];
   const whatIfCtl = ALLOCATIONS ? `<div class="bj-whatif">
     <span class="bj-whatif-label">${L.whatIf}</span>
     <select class="bj-whatif-select">
